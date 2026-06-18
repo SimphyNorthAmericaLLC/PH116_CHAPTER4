@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ch 2-7 — Single-slit diffraction</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;1,300&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap');
+
+  :root {
+    --purple-50:#EEEDFE;--purple-400:#7F77DD;--purple-600:#534AB7;--purple-800:#3C3489;
+    --teal-50:#E1F5EE;--teal-600:#0F6E56;--teal-800:#085041;
+    --coral-50:#FAECE7;--coral-600:#993C1D;--coral-800:#712B13;
+    --amber-50:#FEF3E2;--amber-600:#B45309;
+    --gray-50:#F1EFE8;--gray-400:#888780;--gray-600:#5F5E5A;
+    --bg:#FAFAF8;--surface:#FFFFFF;
+    --border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);
+    --text:#1a1a18;--text-2:#5F5E5A;--text-3:#888780;
+    --radius:10px;--radius-lg:16px;
+    --mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;--serif:'Source Serif 4',serif;
+  }
+  @media(prefers-color-scheme:dark){:root{
+    --purple-50:#26215C;--purple-400:#7F77DD;--purple-600:#AFA9EC;--purple-800:#CECBF6;
+    --teal-50:#04342C;--teal-600:#5DCAA5;--teal-800:#9FE1CB;
+    --coral-50:#4A1B0C;--coral-600:#F0997B;--coral-800:#F5C4B3;
+    --amber-50:#3D2200;--amber-600:#F59E0B;
+    --gray-50:#2C2C2A;--gray-400:#888780;--gray-600:#B4B2A9;
+    --bg:#141412;--surface:#1e1e1b;
+    --border:rgba(255,255,255,0.09);--border-strong:rgba(255,255,255,0.16);
+    --text:#EEECEA;--text-2:#B4B2A9;--text-3:#888780;
+  }}
+
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh}
+
+  .page-header{padding:3rem 2rem 2rem;border-bottom:0.5px solid var(--border);max-width:900px;margin:0 auto}
+  .chapter-label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--purple-400);margin-bottom:.5rem;text-transform:uppercase}
+  h1{font-family:var(--serif);font-weight:300;font-size:clamp(1.6rem,4vw,2.4rem);line-height:1.2;margin-bottom:.75rem}
+  .subtitle{font-size:15px;color:var(--text-2);line-height:1.6;max-width:580px}
+
+  .main{max-width:900px;margin:0 auto;padding:2rem}
+  .section-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin-bottom:1.25rem;display:flex;align-items:center;gap:10px}
+  .section-label::after{content:'';flex:1;height:0.5px;background:var(--border)}
+
+  svg.concept-map{width:100%;height:auto;display:block;margin-bottom:1rem}
+  .ng rect{transition:opacity .15s,stroke-width .15s;cursor:pointer}
+  .ng:hover rect{opacity:.82}
+  .ng.sel rect{stroke-width:2.5px !important}
+
+  #detailPanel{margin-bottom:2rem;display:none}
+  #detailPanel.open{display:block;animation:slideIn .2s ease}
+  @keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+
+  .dp-wrap{border-radius:var(--radius-lg);overflow:hidden;border:0.5px solid var(--border-strong)}
+  .dp-head{padding:12px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid var(--border)}
+  .dp-title{font-size:15px;font-weight:500;color:var(--text)}
+  .dp-close{background:none;border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:4px 12px;cursor:pointer;font-size:12px;color:var(--text-2);font-family:var(--mono)}
+  .dp-close:hover{background:var(--gray-50)}
+  .dp-body{padding:18px;background:var(--surface);display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:600px){.dp-body{grid-template-columns:1fr}}
+  .dp-explain{font-size:14px;color:var(--text-2);line-height:1.75}
+  .dp-explain strong{color:var(--text);font-weight:500}
+  .dp-right{display:flex;flex-direction:column;gap:10px}
+  .dp-formula{font-family:var(--mono);font-size:13px;padding:14px 16px;border-radius:var(--radius);white-space:pre-line;line-height:1.7;border-width:0.5px;border-style:solid}
+  .dp-why{font-size:13px;color:var(--text-2);line-height:1.6;padding:10px 14px;background:var(--gray-50);border-left-width:2px;border-left-style:solid}
+
+  .dp-quiz{border-top:0.5px solid var(--border);padding:16px 18px;background:var(--surface)}
+  .dq-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+  .dq-type{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--teal-50);color:var(--teal-600);font-family:var(--mono);text-transform:none;letter-spacing:0}
+  .dq-q{font-family:var(--serif);font-size:15px;line-height:1.55;color:var(--text);margin-bottom:12px}
+  .dq-opts{display:flex;flex-direction:column;gap:7px}
+  .dq-opt{border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:9px 13px;cursor:pointer;font-size:13px;font-family:var(--mono);color:var(--text-2);background:transparent;text-align:left;transition:all .12s;line-height:1.4}
+  .dq-opt:hover:not(:disabled){background:var(--gray-50);color:var(--text)}
+  .dq-opt:disabled{cursor:default}
+  .dq-opt.correct{border-color:var(--teal-600);background:var(--teal-50);color:var(--teal-800)}
+  .dq-opt.wrong{border-color:var(--coral-600);background:var(--coral-50);color:var(--coral-800)}
+  .dq-tf{display:flex;gap:8px}
+  .dq-tf-btn{flex:1;border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:9px;cursor:pointer;font-size:13px;font-family:var(--mono);color:var(--text-2);background:transparent;transition:all .12s}
+  .dq-tf-btn:hover:not(:disabled){background:var(--gray-50)}
+  .dq-tf-btn:disabled{cursor:default}
+  .dq-tf-btn.correct{border-color:var(--teal-600);background:var(--teal-50);color:var(--teal-800)}
+  .dq-tf-btn.wrong{border-color:var(--coral-600);background:var(--coral-50);color:var(--coral-800)}
+  .dq-feedback{margin-top:10px;padding:10px 13px;font-size:13px;line-height:1.6;color:var(--text-2);background:var(--gray-50);border-left:2px solid var(--purple-400);display:none}
+  .dq-feedback.show{display:block}
+  .dq-feedback strong{color:var(--text);font-weight:500}
+  .dq-retry{margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--purple-400);cursor:pointer;background:none;border:none;padding:0}
+  .dq-retry:hover{text-decoration:underline}
+
+  footer{max-width:900px;margin:3rem auto 0;padding:1.5rem 2rem;border-top:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-3);font-family:var(--mono)}
+  .nav-link{color:var(--purple-400);text-decoration:none}
+  .nav-link:hover{color:var(--purple-600)}
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="chapter-label">Chapter 2-7</div>
+  <h1>Single-slit diffraction — Huygens to Fraunhofer</h1>
+  <p class="subtitle">A single opening is not a single source. By Huygens' principle, every point along the slit emits a new wavelet. Their superposition — evaluated in the far field — produces the sinc² intensity pattern that is the fingerprint of diffraction.</p>
+</header>
+
+<main class="main">
+  <div class="section-label">Concept map — click any node</div>
+
+  <svg class="concept-map" viewBox="0 0 860 860" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+    <style>
+      .ng rect{transition:opacity .15s,stroke-width .15s;cursor:pointer}
+      .ng:hover rect{opacity:.82}
+      .ng.sel rect{stroke-width:2.5px !important}
+      .n-gray  {fill:var(--gray-50);  stroke:var(--gray-400)}
+      .n-purple{fill:var(--purple-50);stroke:var(--purple-400)}
+      .n-teal  {fill:var(--teal-50);  stroke:var(--teal-600)}
+      .n-coral {fill:var(--coral-50); stroke:var(--coral-600)}
+      .n-amber {fill:var(--amber-50); stroke:var(--amber-600)}
+      .tb{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;fill:var(--text)}
+      .ts{font-family:'DM Sans',sans-serif;font-size:11px;fill:var(--text-2)}
+      .tm{font-family:'JetBrains Mono',monospace;font-size:11.5px;fill:var(--purple-400)}
+      .ag{stroke:var(--gray-400);  fill:none;stroke-width:1;marker-end:url(#arr)}
+      .ap{stroke:var(--purple-400);fill:none;stroke-width:1;marker-end:url(#arr)}
+      .at{stroke:var(--teal-600);  fill:none;stroke-width:1;marker-end:url(#arr)}
+      .ac{stroke:var(--coral-600); fill:none;stroke-width:1;marker-end:url(#arr)}
+      .aa{stroke:var(--amber-600); fill:none;stroke-width:1;marker-end:url(#arr)}
+    </style>
+
+    <!-- ROW 1: Huygens principle -->
+    <g class="ng" id="n-huygens" onclick="showNode('huygens')">
+      <rect x="230" y="20" width="400" height="58" rx="8" stroke-width="0.5" class="n-purple"/>
+      <text class="tb" x="430" y="42" text-anchor="middle" dominant-baseline="central">Huygens principle</text>
+      <text class="ts" x="430" y="62" text-anchor="middle" dominant-baseline="central">every point dy along the slit is a new spherical wavelet</text>
+    </g>
+    <line x1="430" y1="78" x2="430" y2="110" class="ap"/>
+
+    <!-- ROW 2: phasor integral -->
+    <g class="ng" id="n-integral" onclick="showNode('integral')">
+      <rect x="200" y="110" width="460" height="58" rx="8" stroke-width="0.5" class="n-gray"/>
+      <text class="tb" x="430" y="132" text-anchor="middle" dominant-baseline="central">Huygens integral (exact)</text>
+      <text class="tm" x="430" y="152" text-anchor="middle" dominant-baseline="central">Ũ(Z) = ∫ C e^(ikr(y)) dy</text>
+    </g>
+    <line x1="430" y1="168" x2="430" y2="200" class="ag"/>
+
+    <!-- ROW 3: geometry r(y) -->
+    <g class="ng" id="n-geometry" onclick="showNode('geometry')">
+      <rect x="200" y="200" width="460" height="58" rx="8" stroke-width="0.5" class="n-gray"/>
+      <text class="tb" x="430" y="222" text-anchor="middle" dominant-baseline="central">Path length r(y) — Pythagorean geometry</text>
+      <text class="tm" x="430" y="242" text-anchor="middle" dominant-baseline="central">r(y) = √(L² + (Z − y)²)</text>
+    </g>
+
+    <!-- branch: Fresnel left, Fraunhofer right -->
+    <path d="M200 229 L110 229 L110 318" class="at"/>
+    <path d="M660 229 L750 229 L750 318" class="ac"/>
+    <line x1="430" y1="258" x2="430" y2="318" class="ag"/>
+
+    <!-- ROW 4 left: Fresnel -->
+    <g class="ng" id="n-fresnel" onclick="showNode('fresnel')">
+      <rect x="20" y="318" width="200" height="68" rx="8" stroke-width="0.5" class="n-teal"/>
+      <text class="tb" x="120" y="340" text-anchor="middle" dominant-baseline="central">Fresnel (near-field)</text>
+      <text class="ts" x="120" y="358" text-anchor="middle" dominant-baseline="central">keep full r(y) — nonlinear</text>
+      <text class="ts" x="120" y="374" text-anchor="middle" dominant-baseline="central">numerical solution only</text>
+    </g>
+
+    <!-- ROW 4 centre: condition -->
+    <g class="ng" id="n-condition" onclick="showNode('condition')">
+      <rect x="265" y="318" width="330" height="68" rx="8" stroke-width="0.5" class="n-gray"/>
+      <text class="tb" x="430" y="340" text-anchor="middle" dominant-baseline="central">Fraunhofer condition</text>
+      <text class="tm" x="430" y="358" text-anchor="middle" dominant-baseline="central">L ≫ w  →  w²/λL ≪ 1</text>
+      <text class="ts" x="430" y="374" text-anchor="middle" dominant-baseline="central">screen distance ≫ slit width</text>
+    </g>
+
+    <!-- ROW 4 right: drop term -->
+    <g class="ng" id="n-dropterm" onclick="showNode('dropterm')">
+      <rect x="640" y="318" width="200" height="68" rx="8" stroke-width="0.5" class="n-coral"/>
+      <text class="tb" x="740" y="340" text-anchor="middle" dominant-baseline="central">Drop y²/L² term</text>
+      <text class="ts" x="740" y="358" text-anchor="middle" dominant-baseline="central">quadratic in y vanishes</text>
+      <text class="ts" x="740" y="374" text-anchor="middle" dominant-baseline="central">since y ≤ w/2 ≪ L</text>
+    </g>
+
+    <!-- arrows down from centre and right -->
+    <line x1="430" y1="386" x2="430" y2="436" class="ag"/>
+    <line x1="740" y1="386" x2="740" y2="436" class="ac"/>
+    <path d="M740 436 L430 436" class="ac"/>
+
+    <!-- ROW 5: linearise -->
+    <g class="ng" id="n-linearise" onclick="showNode('linearise')">
+      <rect x="200" y="436" width="460" height="68" rx="8" stroke-width="0.5" class="n-purple"/>
+      <text class="tb" x="430" y="458" text-anchor="middle" dominant-baseline="central">Linearise r(y) — Taylor expansion</text>
+      <text class="tm" x="430" y="476" text-anchor="middle" dominant-baseline="central">r(y) ≈ L/cosθ − y sinθ</text>
+      <text class="ts" x="430" y="492" text-anchor="middle" dominant-baseline="central">path length now linear in y</text>
+    </g>
+    <line x1="430" y1="504" x2="430" y2="554" class="ap"/>
+
+    <!-- ROW 6: Fraunhofer integral -->
+    <g class="ng" id="n-fraunhofer" onclick="showNode('fraunhofer')">
+      <rect x="200" y="554" width="460" height="58" rx="8" stroke-width="0.5" class="n-teal"/>
+      <text class="tb" x="430" y="576" text-anchor="middle" dominant-baseline="central">Fraunhofer integral (Fourier transform)</text>
+      <text class="tm" x="430" y="596" text-anchor="middle" dominant-baseline="central">Ũ(θ) = ∫ C e^(iky sinθ) dy</text>
+    </g>
+    <line x1="430" y1="612" x2="430" y2="662" class="at"/>
+
+    <!-- ROW 7: sinc result -->
+    <g class="ng" id="n-sinc" onclick="showNode('sinc')">
+      <rect x="160" y="662" width="540" height="68" rx="8" stroke-width="0.5" class="n-purple"/>
+      <text class="tb" x="430" y="684" text-anchor="middle" dominant-baseline="central">Amplitude — sinc function</text>
+      <text class="tm" x="430" y="704" text-anchor="middle" dominant-baseline="central">Ũ(θ) ∝ sinβ/β,   β = kw sinθ/2</text>
+      <text class="ts" x="430" y="720" text-anchor="middle" dominant-baseline="central">intensity I(θ) ∝ (sinβ/β)²</text>
+    </g>
+
+    <!-- branch to minima and width -->
+    <line x1="310" y1="730" x2="210" y2="788" class="ap"/>
+    <line x1="550" y1="730" x2="650" y2="788" class="ap"/>
+
+    <!-- ROW 8 left: minima -->
+    <g class="ng" id="n-minima" onclick="showNode('minima')">
+      <rect x="40" y="788" width="310" height="52" rx="8" stroke-width="0.5" class="n-coral"/>
+      <text class="tb" x="195" y="808" text-anchor="middle" dominant-baseline="central">Minima (dark fringes)</text>
+      <text class="tm" x="195" y="828" text-anchor="middle" dominant-baseline="central">w sinθ = mλ,  Zm = mλL/w</text>
+    </g>
+
+    <!-- ROW 8 right: central max width -->
+    <g class="ng" id="n-width" onclick="showNode('width')">
+      <rect x="510" y="788" width="310" height="52" rx="8" stroke-width="0.5" class="n-amber"/>
+      <text class="tb" x="665" y="808" text-anchor="middle" dominant-baseline="central">Central maximum width</text>
+      <text class="tm" x="665" y="828" text-anchor="middle" dominant-baseline="central">2λL/w  (narrows as w grows)</text>
+    </g>
+
+    <text font-family="'DM Sans',sans-serif" font-size="11" fill="var(--text-3)" x="430" y="856" text-anchor="middle">Click any node to expand details and a quiz question below</text>
+  </svg>
+
+  <div id="detailPanel"></div>
+
+</main>
+
+<footer>
+  <span>Chapter 2-7 — Single-slit diffraction</span>
+</footer>
+
+<script>
+const NODES = {
+  huygens:{
+    title:"Huygens principle", color:"purple",
+    explain:"Huygens' principle states that every point on a propagating wavefront — including every point <strong>along the slit opening</strong> — can be treated as a new point source emitting a spherical wavelet with the same frequency and wavenumber as the incident wave. The observed wave at any later time is the superposition of all these wavelets. Applied to a slit, this immediately explains why a single opening produces an interference pattern: the slit creates infinitely many coherent sources, not one.",
+    formula:"each element dy at position y emits:\n  dŨ = C · e^{ikr(y)} dy\n\nwhere:\n  k  = 2π/λ  (wavenumber)\n  r(y) = path from y to observer\n  C  = constant amplitude per unit length\n\ntotal: Ũ = ∫_{-w/2}^{+w/2} C e^{ikr(y)} dy",
+    why:"Why this matters: Huygens' principle converts the geometry of an opening into a sum of phasors. The interference of these phasors — not any special property of the material — produces diffraction. The same mathematics applies to antenna arrays, acoustic apertures, and X-ray crystallography.",
+    quiz:{type:"mc",
+      q:"According to Huygens' principle, a slit of width w produces an interference pattern because:",
+      opts:[
+        "The slit acts as a single point source at its centre",
+        "Every point along the slit emits a new wavelet — creating infinitely many coherent sources",
+        "The slit reflects part of the wave back toward the source",
+        "Only the edges of the slit contribute to the pattern"
+      ],
+      correct:1,
+      fb:"<strong>Every point along the slit emits a new wavelet.</strong> This is the core of Huygens' principle. The slit is not a single source — it is a continuous distribution of sources from y = −w/2 to y = +w/2. Their phasors, each accumulating a different phase depending on path length r(y), superpose to produce the observed pattern."
+    }
+  },
+  integral:{
+    title:"Huygens integral (exact)", color:"gray",
+    explain:"Summing the infinitesimal phasor contributions from every element dy across the slit gives the <strong>exact Huygens integral</strong>. Each contribution has amplitude C·dy and phase k·r(y), where r(y) is the true path length from the slit element at y to the observation point. This integral is the Fresnel diffraction integral — it is valid at any distance from the slit, but it is nonlinear in y and has no closed-form solution.",
+    formula:"Ũ(Z) = ∫_{-w/2}^{+w/2} C e^{ik·r(y)} dy\n\nwhere r(y) = √(L² + (Z−y)²)\n\nThis is the Fresnel (near-field) form.\nNonlinear in y — no closed-form solution.\nMust be evaluated numerically.",
+    why:"Why this matters: understanding that this integral is exact but intractable motivates the Fraunhofer approximation. Knowing the exact form also lets you check the limits of the approximation — and tells you when to use numerical (Fresnel) methods instead.",
+    quiz:{type:"tf",
+      q:"True or false: the exact Huygens integral for a single slit has a closed-form analytical solution.",
+      correct:false,
+      fb:"<strong>False.</strong> The exact integral Ũ(Z) = ∫ C e^{ik√(L²+(Z−y)²)} dy is nonlinear in y due to the square root in the exponent. It has no closed-form solution and must be evaluated numerically (Fresnel integrals). Only after the Fraunhofer approximation linearises r(y) does the integral reduce to a simple analytic result."
+    }
+  },
+  geometry:{
+    title:"Path length r(y) — Pythagorean geometry", color:"gray",
+    explain:"The slit lies along the y-axis, centred at y = 0, spanning from −w/2 to +w/2. The screen is at horizontal distance L. A point on the screen is labelled by its coordinate Z (measured along the screen). For a slit element at height y, the straight-line distance to screen point Z is the hypotenuse of a right triangle with legs L (horizontal) and (Z − y) (vertical). Pythagoras gives <strong>r(y) = √(L² + (Z − y)²)</strong>.",
+    formula:"right triangle:\n  horizontal leg = L   (slit to screen)\n  vertical leg   = Z − y\n  hypotenuse     = r(y)\n\nr(y) = √(L² + (Z − y)²)\n\nAngle θ: tan θ = Z/L\nSo Z = L tan θ",
+    why:"Why this matters: this is purely geometry — no physics yet. The shape of r(y) as a function of y determines how phase accumulates across the slit. A linear r(y) (Fraunhofer) gives a Fourier transform; the full nonlinear r(y) gives Fresnel diffraction.",
+    quiz:{type:"mc",
+      q:"A slit element at y = 0.1 mm observes a screen point Z = 0. The screen is L = 2 m away. What is r(y)?",
+      opts:[
+        "r = 2.0 m exactly",
+        "r = √(4 + 10⁻⁸) ≈ 2.0000000025 m",
+        "r = 0.1 mm",
+        "r = 2.0001 m"
+      ],
+      correct:1,
+      fb:"<strong>r = √(L² + y²) = √(4 + (10⁻⁴)²) = √(4 + 10⁻⁸) ≈ 2.0000000025 m.</strong> The correction is tiny — only 2.5 nm — which is why the Fraunhofer approximation (which drops the y² term from the phase) works so well when L ≫ w."
+    }
+  },
+  fresnel:{
+    title:"Fresnel diffraction (near-field)", color:"teal",
+    explain:"When the screen is close to the slit — specifically when w²/λL is not ≪ 1 — the quadratic term y²/L² in r(y) cannot be ignored. The resulting integral is the <strong>Fresnel diffraction integral</strong>. It produces patterns that vary significantly with distance from the slit: the edges cast sharp geometric shadows that gradually develop into the familiar Fraunhofer sinc² pattern as L increases.",
+    formula:"Fresnel regime: w²/(λL) ≳ 1\n\nŨ(Z) = ∫ C e^{ik√(L²+(Z−y)²)} dy\n\nNo closed form — use Cornu spiral or\nnumerical integration.\n\nFraunhofer check: w²/λL ≪ 1\nexample: w=0.1mm, λ=500nm, L=2m\n  w²/λL = 10⁻⁸/(10⁻⁶×2) = 0.005 ≪ 1 ✓",
+    why:"Why this matters: Fresnel diffraction governs what happens close to any aperture — the shadow of a razor blade, diffraction inside an optical instrument, X-ray diffraction near a crystal. The Fraunhofer limit is a special case that applies only in the far field.",
+    quiz:{type:"mc",
+      q:"A slit has w = 1 mm, λ = 500 nm. At what approximate screen distance L does the transition from Fresnel to Fraunhofer occur (w²/λL ≈ 1)?",
+      opts:["L ≈ 0.002 m","L ≈ 2 m","L ≈ 200 m","L ≈ 20 m"],
+      correct:1,
+      fb:"<strong>L ≈ 2 m.</strong> The Fraunhofer condition w²/λL ≪ 1 becomes equality at L = w²/λ = (10⁻³)²/(5×10⁻⁷) = 10⁻⁶/5×10⁻⁷ = 2 m. For L ≫ 2 m the Fraunhofer approximation is excellent; for L ≪ 2 m you need Fresnel (numerical) methods."
+    }
+  },
+  condition:{
+    title:"Fraunhofer condition", color:"gray",
+    explain:"The Fraunhofer (far-field) condition requires the screen to be so far away that all rays from the slit to a given screen point are <strong>nearly parallel</strong>. Quantitatively this means the quadratic phase term y²cos²θ/L² is negligible compared to 1 — i.e., w²/λL ≪ 1. Under this condition the nonlinear integral simplifies to a Fourier transform, which has an exact analytical solution.",
+    formula:"Fraunhofer condition:\n  w²/(λL) ≪ 1\n\nequivalently:\n  L ≫ w²/λ\n\ngeometric meaning:\n  rays from different y to same screen\n  point are nearly parallel — angle\n  varies by less than λ/w across slit\n\nin practice: use a lens to bring the\n  far field to its focal plane",
+    why:"Why this matters: the Fraunhofer approximation is not just a mathematical convenience — it corresponds to the physically important regime where the pattern is fully formed and self-similar (independent of L). It is the regime relevant to telescopes, cameras, and diffraction gratings.",
+    quiz:{type:"tf",
+      q:"True or false: the Fraunhofer approximation requires the slit width to be much smaller than the wavelength.",
+      correct:false,
+      fb:"<strong>False.</strong> The Fraunhofer condition is L ≫ w²/λ — it constrains the screen distance relative to the slit width and wavelength, not the slit width relative to the wavelength. The slit can be many wavelengths wide (w ≫ λ) and the Fraunhofer approximation still applies as long as the screen is sufficiently far away."
+    }
+  },
+  dropterm:{
+    title:"Drop the y²/L² term", color:"coral",
+    explain:"Expanding r(y) after factoring out L gives terms proportional to y/L and y²/L². The <strong>linear term</strong> (proportional to y sinθ) must be kept — it is responsible for the entire interference pattern. The <strong>quadratic term</strong> y²cos²θ/L² is order (w/L)² and is negligible when L ≫ w. Dropping it linearises r(y), converting the nonlinear Fresnel integral into the analytically tractable Fraunhofer integral.",
+    formula:"full r(y) after expansion:\n  r(y) = (L/cosθ)√(1 − 2y sinθ cosθ/L\n                         + y²cos²θ/L²)\n\ndrop y²cos²θ/L² (Fraunhofer):\n  r(y) ≈ (L/cosθ)√(1 − 2y sinθ cosθ/L)\n\nTaylor: √(1−ε) ≈ 1 − ε/2:\n  r(y) ≈ L/cosθ − y sinθ",
+    why:"Why this matters: this one approximation transforms an intractable integral into a Fourier transform. The linear-in-y phase e^{−iky sinθ} is the Fourier kernel — meaning diffraction in the far field is literally the Fourier transform of the aperture function.",
+    quiz:{type:"mc",
+      q:"Why is the linear term y sinθ kept but the quadratic term y²/L² dropped in the Fraunhofer approximation?",
+      opts:[
+        "Because sinθ > 1/L always",
+        "Because the linear term drives the phase variation across the slit while y²/L² ≪ 1 when L ≫ w",
+        "Because y² is always zero at the centre of the slit",
+        "Because the quadratic term only affects the amplitude, not the phase"
+      ],
+      correct:1,
+      fb:"<strong>The linear term drives the interference; the quadratic is negligible.</strong> The phase accumulated by a slit element at y is k·r(y). The linear part k·y sinθ varies from −kw sinθ/2 to +kw sinθ/2 across the slit — this variation produces the interference pattern. The quadratic part k·y²cos²θ/L is order k·w²/L, which is ≪ 1 radian when w²/λL ≪ 1. Dropping it changes the phase by less than a radian — a negligible correction."
+    }
+  },
+  linearise:{
+    title:"Linearise r(y) — Taylor expansion", color:"purple",
+    explain:"After dropping the quadratic term, r(y) = (L/cosθ)√(1 − 2y sinθ cosθ/L). A first-order Taylor expansion √(1−ε) ≈ 1 − ε/2 with ε = 2y sinθ cosθ/L gives r(y) ≈ (L/cosθ)(1 − y sinθ cosθ/L). Expanding the bracket: r(y) ≈ L/cosθ − (L/cosθ)(y sinθ cosθ/L). The L and cosθ cancel in the second term, leaving <strong>r(y) ≈ L/cosθ − y sinθ</strong>. The first term is constant (independent of y); only the second term varies across the slit.",
+    formula:"r(y) ≈ L/cosθ − y sinθ\n\nfirst term L/cosθ: constant phase\n  → factors out as e^{ikL/cosθ}\n  → absorbed into constant C\n  → irrelevant to intensity |Ũ|²\n\nsecond term y sinθ: linear in y\n  → produces phase e^{−iky sinθ}\n  → this is the Fourier kernel\n\nresult: each slit element contributes\n  e^{iky sinθ} (sign convention of notes)",
+    why:"Why this matters: the result r(y) ≈ L/cosθ − y sinθ is the key step. It shows that in the far field, path length differences across the slit are simply proportional to y sinθ — a purely geometric, linear relationship. This is what makes the Fraunhofer integral tractable.",
+    quiz:{type:"mc",
+      q:"In r(y) ≈ L/cosθ − y sinθ, the term L/cosθ is constant with respect to y. What happens to e^{ikL/cosθ} in the integral?",
+      opts:[
+        "It modifies the fringe positions",
+        "It factors out and is absorbed into C — it does not affect the intensity pattern",
+        "It creates an additional oscillation in the pattern",
+        "It cancels with another term from the slit edges"
+      ],
+      correct:1,
+      fb:"<strong>It factors out and is absorbed into C.</strong> Since L/cosθ does not depend on y, e^{ikL/cosθ} is a constant multiplier that comes outside the integral. It contributes an overall phase to Ũ(θ), but intensity I = |Ũ|² and |e^{iφ}| = 1 for any real φ — so this phase has no physical effect on the observed pattern."
+    }
+  },
+  fraunhofer:{
+    title:"Fraunhofer integral — a Fourier transform", color:"teal",
+    explain:"With r(y) linearised, the integral becomes Ũ(θ) = ∫_{-w/2}^{+w/2} C e^{iky sinθ} dy. This is precisely the <strong>Fourier transform</strong> of the aperture function (which is 1 inside the slit and 0 outside), evaluated at spatial frequency f = sinθ/λ. The Fraunhofer diffraction pattern is literally the Fourier transform of the aperture — a profound connection that underlies all of Fourier optics.",
+    formula:"Ũ(θ) = ∫_{-w/2}^{+w/2} C e^{iky sinθ} dy\n\nwith a = ik sinθ:\n∫e^{ay} dy = e^{ay}/a\n\nresult:\nŨ(θ) = C[e^{iky sinθ}/(ik sinθ)]_{-w/2}^{+w/2}\n      = C/(ik sinθ) · (e^{ikw sinθ/2} − e^{−ikw sinθ/2})\n\nusing e^{ix}−e^{−ix} = 2i sinx:\nŨ(θ) = (2C/k sinθ) · sin(kw sinθ/2)",
+    why:"Why this matters: recognising this as a Fourier transform is enormously powerful. The diffraction pattern of any aperture — circular, rectangular, irregular — is its Fourier transform. This is why lenses compute Fourier transforms, and why diffraction gratings are Fourier analysers of light.",
+    quiz:{type:"mc",
+      q:"Using ∫e^{ay}dy = e^{ay}/a with a = ik sinθ, evaluate ∫_{-w/2}^{+w/2} e^{iky sinθ} dy.",
+      opts:[
+        "w · e^{ikw sinθ}",
+        "1/(ik sinθ) · (e^{ikw sinθ/2} − e^{−ikw sinθ/2})",
+        "2 sin(kw sinθ) / (kw sinθ)",
+        "e^{ikw sinθ/2} / (ik sinθ)"
+      ],
+      correct:1,
+      fb:"<strong>[e^{iky sinθ}/(ik sinθ)] from −w/2 to +w/2 = (1/ik sinθ)(e^{ikw sinθ/2} − e^{−ikw sinθ/2}).</strong> Apply ∫e^{ay}dy = e^{ay}/a with a = ik sinθ, then evaluate at the limits. This difference of complex exponentials is then converted via the Euler identity e^{ix} − e^{−ix} = 2i sinx."
+    }
+  },
+  sinc:{
+    title:"The sinc function and sinc² intensity", color:"purple",
+    explain:"Defining <strong>β = kw sinθ / 2 = πw sinθ / λ</strong>, the amplitude simplifies to Ũ(θ) ∝ sinβ/β — the sinc function. Intensity is I ∝ |Ũ|² = (sinβ/β)², the sinc-squared pattern. The central maximum is at β = 0 (θ = 0), where sinβ/β → 1. The zeros (dark fringes) occur at β = mπ, m ≠ 0. The secondary maxima are much weaker than the central peak. As a sanity check: at θ = 0, L'Hôpital's rule gives sin(0)/0 → 1, so I(0) = I₀ as expected.",
+    formula:"β = kw sinθ/2 = πw sinθ/λ\n\nAmplitude: Ũ(θ) ∝ sinβ/β\n\nIntensity: I(θ) = I₀ (sinβ/β)²\n\nCentral max: β→0, sinβ/β→1, I=I₀\nZeros:       β = mπ, m = ±1, ±2, …\nSide maxima: β ≈ ±1.43π, ±2.46π, …\n  (transcendental — no exact formula)",
+    why:"Why this matters: the sinc² shape is the universal diffraction envelope. It appears as the single-slit modulation factor in multi-slit patterns, as the point-spread function of a rectangular aperture, and as the spectral shape of a finite-duration signal in Fourier analysis.",
+    quiz:{type:"mc",
+      q:"At β = π (the first zero), what is the value of (sinβ/β)?",
+      opts:["1","π","0","1/π"],
+      correct:2,
+      fb:"<strong>sin(π)/π = 0/π = 0.</strong> At β = π, sinβ = sin(π) = 0 exactly. Dividing by π gives zero — a true dark fringe with zero intensity. This occurs at sinθ = λ/w (the first minimum). The fact that the numerator reaches zero while the denominator is nonzero makes this a genuine zero of the sinc function."
+    }
+  },
+  minima:{
+    title:"Minima — dark fringe positions", color:"coral",
+    explain:"The intensity pattern I(θ) ∝ (sinβ/β)² has zeros wherever sin β = 0, i.e. β = mπ for integer m ≠ 0. Substituting β = πw sinθ/λ gives the condition <strong>w sinθ = mλ</strong>. Using the small-angle approximation sinθ ≈ tanθ = Z/L, the screen positions of the dark fringes are <strong>Zm = mλL/w</strong>. These are symmetrically placed about the central maximum at Z = 0. Note m = 0 is excluded — that gives the central bright maximum.",
+    formula:"zeros of sinβ: β = mπ, m = ±1, ±2, …\n\nangle condition:\n  πw sinθ/λ = mπ\n  w sinθ = mλ\n  sinθ_m = mλ/w\n\nscreen position (small angle):\n  Z_m ≈ mλL/w\n\ncentral max width = 2λL/w\n  (distance from m=−1 to m=+1 minimum)",
+    why:"Why this matters: measuring the positions of the dark fringes gives an immediate determination of λ (if w and L are known) or w (if λ and L are known). This is the basis of single-slit diffractometry.",
+    quiz:{type:"mc",
+      q:"A slit of width w = 0.2 mm is illuminated with λ = 600 nm. A screen is L = 3 m away. Where is the first dark fringe (m = 1)?",
+      opts:["Z₁ = 3 mm","Z₁ = 9 mm","Z₁ = 1 mm","Z₁ = 6 mm"],
+      correct:1,
+      fb:"<strong>Z₁ = λL/w = (600×10⁻⁹ × 3) / (0.2×10⁻³) = 1.8×10⁻³ / 2×10⁻⁴ = 9×10⁻³ m = 9 mm.</strong> The central maximum extends from Z = −9 mm to Z = +9 mm, giving a total width of 18 mm. Secondary maxima appear beyond these first dark fringes."
+    }
+  },
+  width:{
+    title:"Central maximum width scales as λ/w", color:"amber",
+    explain:"The central maximum spans from the first minimum at Z = −λL/w to Z = +λL/w, giving a total width of <strong>2λL/w</strong>. This has a counterintuitive consequence: <strong>a wider slit produces a narrower diffraction pattern</strong>, and a narrower slit produces a wider, more spread-out pattern. In the limit w → ∞ (no slit at all), the pattern collapses to a geometric point — the geometrical optics limit. In the limit w → 0, the pattern spreads over all angles — the slit becomes a point source.",
+    formula:"central max width = 2λL/w\n\nwidth ∝ λ  (longer λ → wider pattern)\nwidth ∝ 1/w (wider slit → narrower pattern)\nwidth ∝ L   (farther screen → wider pattern)\n\ngeometrical optics limit:\n  w ≫ λ  →  width ≈ w  (geometric shadow)\n\npoint-source limit:\n  w → 0  →  width → ∞  (isotropic emission)",
+    why:"Why this matters: the w-dependence is the wave-optics reason that high-resolution telescopes need large apertures — a bigger mirror (larger w) gives a narrower diffraction spot and thus finer angular resolution. This is the Rayleigh criterion for resolving two stars.",
+    quiz:{type:"mc",
+      q:"You halve the slit width w (keeping λ and L fixed). What happens to the central maximum width?",
+      opts:["It halves","It stays the same","It doubles","It quadruples"],
+      correct:2,
+      fb:"<strong>It doubles.</strong> Central maximum width = 2λL/w. Halving w doubles the width — the pattern spreads out. This is the fundamental diffraction trade-off: confining the wave more tightly in space (smaller w) forces it to spread more widely in angle. It is the spatial analogue of the time-frequency uncertainty principle."
+    }
+  }
+};
+
+const colorMap  = {gray:'var(--gray-50)',purple:'var(--purple-50)',teal:'var(--teal-50)',coral:'var(--coral-50)',amber:'var(--amber-50)'};
+const borderMap = {gray:'var(--gray-400)',purple:'var(--purple-400)',teal:'var(--teal-600)',coral:'var(--coral-600)',amber:'var(--amber-600)'};
+let currentNode = null;
+
+function quizHTML(q, id){
+  if(q.type==='mc') return `<div class="dq-opts">${q.opts.map((o,i)=>`<button class="dq-opt" onclick="dqMC('${id}',this,${i===q.correct})">${o}</button>`).join('')}</div>`;
+  if(q.type==='tf') return `<div class="dq-tf"><button class="dq-tf-btn" onclick="dqTF('${id}',this,${q.correct===true})">True</button><button class="dq-tf-btn" onclick="dqTF('${id}',this,${q.correct===false})">False</button></div>`;
+}
+function typeLabel(t){return {mc:'multiple choice',tf:'true / false'}[t]||t;}
+
+function showNode(id){
+  const data=NODES[id]; if(!data)return;
+  document.querySelectorAll('.ng').forEach(g=>g.classList.remove('sel'));
+  if(currentNode===id){currentNode=null;const p=document.getElementById('detailPanel');p.innerHTML='';p.className='';return;}
+  currentNode=id;
+  document.getElementById('n-'+id).classList.add('sel');
+  const bc=borderMap[data.color], bg=colorMap[data.color], q=data.quiz;
+  const panel=document.getElementById('detailPanel');
+  panel.innerHTML=`<div class="dp-wrap" style="border-color:${bc}">
+    <div class="dp-head" style="background:${bg}"><span class="dp-title">${data.title}</span><button class="dp-close" onclick="closePanel()">close ×</button></div>
+    <div class="dp-body"><div class="dp-explain">${data.explain}</div><div class="dp-right"><div class="dp-formula" style="background:${bg};border-color:${bc}">${data.formula}</div><div class="dp-why" style="border-left-color:${bc}">${data.why}</div></div></div>
+    <div class="dp-quiz"><div class="dq-label"><span>Quick check</span><span class="dq-type">${typeLabel(q.type)}</span></div><p class="dq-q">${q.q}</p><div id="dqBody_${id}">${quizHTML(q,id)}</div><div class="dq-feedback" id="dqFb_${id}"></div><button class="dq-retry" id="dqRetry_${id}" style="display:none" onclick="retryQuiz('${id}')">↺ try again</button></div>
+  </div>`;
+  panel.className='open';
+  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function closePanel(){currentNode=null;document.querySelectorAll('.ng').forEach(g=>g.classList.remove('sel'));const p=document.getElementById('detailPanel');p.innerHTML='';p.className='';}
+function showFb(id,correct){const fb=document.getElementById('dqFb_'+id),retry=document.getElementById('dqRetry_'+id);fb.innerHTML=(correct?'<strong>Correct!</strong> ':'<strong>Not quite.</strong> ')+NODES[id].quiz.fb;fb.className='dq-feedback show';if(!correct)retry.style.display='block';}
+function dqMC(id,btn,correct){const body=document.getElementById('dqBody_'+id);body.querySelectorAll('.dq-opt').forEach((b,i)=>{b.disabled=true;if(b===btn)b.classList.add(correct?'correct':'wrong');else if(!correct&&i===NODES[id].quiz.correct)b.classList.add('correct');});showFb(id,correct);}
+function dqTF(id,btn,correct){const body=document.getElementById('dqBody_'+id);body.querySelectorAll('.dq-tf-btn').forEach(b=>{b.disabled=true;});btn.classList.add(correct?'correct':'wrong');if(!correct){const o=[...body.querySelectorAll('.dq-tf-btn')].find(b=>b!==btn);if(o)o.classList.add('correct');}showFb(id,correct);}
+function retryQuiz(id){document.getElementById('dqBody_'+id).innerHTML=quizHTML(NODES[id].quiz,id);const fb=document.getElementById('dqFb_'+id);fb.className='dq-feedback';fb.innerHTML='';document.getElementById('dqRetry_'+id).style.display='none';}
+</script>
+</body>
+</html>

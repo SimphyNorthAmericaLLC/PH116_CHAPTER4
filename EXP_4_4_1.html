@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Single-Slit Diffraction with Screen</title>
+<style>
+  body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#111827;
+    color:#f9fafb;
+    display:flex;
+    justify-content:center;
+    padding:20px;
+  }
+  .wrap{
+    width:min(1220px, 98vw);
+    background:#1f2937;
+    border-radius:16px;
+    padding:18px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.35);
+  }
+  h1{
+    margin:0 0 8px 0;
+    text-align:center;
+    font-size:1.5rem;
+  }
+  .sub{
+    text-align:center;
+    color:#cbd5e1;
+    margin-bottom:14px;
+    line-height:1.45;
+  }
+  .controls{
+    display:grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .card{
+    background:#111827;
+    border-radius:12px;
+    padding:12px;
+    text-align:center;
+  }
+  .card label{
+    display:block;
+    color:#cbd5e1;
+    font-size:0.95rem;
+    margin-bottom:6px;
+  }
+  .value{
+    font-size:1.05rem;
+    font-weight:bold;
+  }
+  input[type="range"]{ width:100%; }
+  .buttons{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:12px;
+    flex-wrap:wrap;
+  }
+  button{
+    border:none;
+    border-radius:12px;
+    padding:12px 16px;
+    font-size:1rem;
+    cursor:pointer;
+    background:#e5e7eb;
+    color:#111827;
+    font-weight:bold;
+  }
+  button:hover{ filter:brightness(0.96); }
+  canvas{
+    display:block;
+    width:100%;
+    height:auto;
+    background:white;
+    border-radius:12px;
+  }
+  .note{
+    margin-top:10px;
+    color:#cbd5e1;
+    line-height:1.45;
+    font-size:0.95rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Single-Slit Diffraction with a Screen</h1>
+  <div class="sub">
+    A plane wave reaches a slit, points inside the opening act like secondary emitters, and the far-right screen shows the main diffraction lobes.
+  </div>
+
+  <div class="controls">
+    <div class="card">
+      <label for="slitSlider">Slit width a</label>
+      <input id="slitSlider" type="range" min="20" max="180" step="2" value="70">
+      <div class="value" id="slitVal">70</div>
+    </div>
+    <div class="card">
+      <label for="waveSlider">Wavelength λ (display)</label>
+      <input id="waveSlider" type="range" min="20" max="110" step="2" value="55">
+      <div class="value" id="waveVal">55</div>
+    </div>
+    <div class="card">
+      <label for="pointsSlider">Emitter points in slit</label>
+      <input id="pointsSlider" type="range" min="3" max="25" step="1" value="9">
+      <div class="value" id="pointsVal">9</div>
+    </div>
+    <div class="card">
+      <label for="speedSlider">Animation speed</label>
+      <input id="speedSlider" type="range" min="0" max="200" step="5" value="70">
+      <div class="value" id="speedVal">70</div>
+    </div>
+    <div class="card">
+      <label>Pattern</label>
+      <div class="value">single-slit lobes</div>
+    </div>
+  </div>
+
+  <div class="buttons">
+    <button id="playBtn">Pause</button>
+    <button id="toggleBtn">Hide Huygens Points</button>
+    <button id="resetBtn">Reset Phase</button>
+  </div>
+
+  <canvas id="canvas" width="1120" height="620"></canvas>
+
+  <div class="note">
+    The red curve on the screen is the single-slit diffraction envelope, proportional to
+    <strong>(sin β / β)²</strong>, with <strong>β = π a sinθ / λ</strong>.
+    Narrower slit relative to wavelength gives a wider central lobe.
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+
+  const slitSlider = document.getElementById("slitSlider");
+  const waveSlider = document.getElementById("waveSlider");
+  const pointsSlider = document.getElementById("pointsSlider");
+  const speedSlider = document.getElementById("speedSlider");
+
+  const slitVal = document.getElementById("slitVal");
+  const waveVal = document.getElementById("waveVal");
+  const pointsVal = document.getElementById("pointsVal");
+  const speedVal = document.getElementById("speedVal");
+
+  const playBtn = document.getElementById("playBtn");
+  const toggleBtn = document.getElementById("toggleBtn");
+  const resetBtn = document.getElementById("resetBtn");
+
+  const W = canvas.width;
+  const H = canvas.height;
+
+  const barrierX = 410;
+  const screenX = 980;
+  let phase = 0;
+  let running = true;
+  let showPoints = true;
+  let lastTime = null;
+
+  function updateReadouts() {
+    slitVal.textContent = slitSlider.value;
+    waveVal.textContent = waveSlider.value;
+    pointsVal.textContent = pointsSlider.value;
+    speedVal.textContent = speedSlider.value;
+  }
+
+  function drawBarrier(slitTop, slitBottom) {
+    ctx.strokeStyle = "#111827";
+    ctx.lineWidth = 8;
+
+    ctx.beginPath();
+    ctx.moveTo(barrierX, 20);
+    ctx.lineTo(barrierX, slitTop);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(barrierX, slitBottom);
+    ctx.lineTo(barrierX, H - 20);
+    ctx.stroke();
+
+    ctx.fillStyle = "#111827";
+    ctx.font = "18px Arial";
+    ctx.fillText("barrier", barrierX - 28, 26);
+    ctx.fillText("slit", barrierX + 16, (slitTop + slitBottom)/2 + 6);
+  }
+
+  function drawIncidentWave(lambda) {
+    ctx.strokeStyle = "#2563eb";
+    ctx.lineWidth = 2;
+    for (let x = 40; x < barrierX - 20; x += lambda / 2) {
+      const radius = (phase + x * 0.15) % lambda;
+      ctx.beginPath();
+      ctx.arc(x, H/2, radius, -Math.PI/2, Math.PI/2);
+      ctx.stroke();
+    }
+    ctx.fillStyle = "#111827";
+    ctx.font = "18px Arial";
+    ctx.fillText("incident plane wave", 55, 40);
+  }
+
+  function drawWavelets(lambda, slitTop, slitBottom, npts) {
+    const ys = [];
+    if (npts === 1) {
+      ys.push((slitTop + slitBottom)/2);
+    } else {
+      for (let i = 0; i < npts; i++) {
+        ys.push(slitTop + i * (slitBottom - slitTop)/(npts - 1));
+      }
+    }
+
+    if (showPoints) {
+      ctx.fillStyle = "#16a34a";
+      ys.forEach(y => {
+        ctx.beginPath();
+        ctx.arc(barrierX, y, 4, 0, 2*Math.PI);
+        ctx.fill();
+      });
+      ctx.fillStyle = "#111827";
+      ctx.font = "17px Arial";
+      ctx.fillText("secondary emitters", barrierX + 18, slitTop - 18);
+    }
+
+    ctx.strokeStyle = "rgba(220, 38, 38, 0.30)";
+    ctx.lineWidth = 1.25;
+
+    ys.forEach((y) => {
+      for (let r = phase % lambda; r < 650; r += lambda) {
+        ctx.beginPath();
+        ctx.arc(barrierX, y, r, -Math.PI/2 - 0.85, Math.PI/2 + 0.85);
+        ctx.stroke();
+      }
+    });
+  }
+
+  function drawCenterlineDirections(slitTop, slitBottom) {
+    const cy = (slitTop + slitBottom)/2;
+    ctx.strokeStyle = "rgba(0,0,0,0.12)";
+    ctx.lineWidth = 1;
+
+    for (let ang = -0.9; ang <= 0.9; ang += 0.18) {
+      ctx.beginPath();
+      ctx.moveTo(barrierX, cy);
+      ctx.lineTo(barrierX + 360*Math.cos(ang), cy + 360*Math.sin(ang));
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = "#111827";
+    ctx.font = "17px Arial";
+    ctx.fillText("spreading beyond slit", barrierX + 175, cy - 165);
+  }
+
+  function sincSquared(beta) {
+    if (Math.abs(beta) < 1e-8) return 1;
+    const s = Math.sin(beta)/beta;
+    return s*s;
+  }
+
+  function drawScreenAndProfile(slitWidth, lambda) {
+    // screen
+    ctx.strokeStyle = "#111827";
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(screenX, 25);
+    ctx.lineTo(screenX, H - 25);
+    ctx.stroke();
+
+    ctx.fillStyle = "#111827";
+    ctx.font = "18px Arial";
+    ctx.fillText("screen", screenX + 14, 30);
+
+    // screen profile based on beta = pi a sin(theta)/lambda
+    const cy = H/2;
+    const L = screenX - barrierX;
+    const maxWidth = 115; // profile extends left from screen
+
+    ctx.strokeStyle = "#dc2626";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+
+    for (let py = 35; py <= H-35; py++) {
+      const y = py - cy;
+      const theta = Math.atan2(y, L);
+      const beta = Math.PI * slitWidth * Math.sin(theta) / lambda;
+      const I = sincSquared(beta);
+      const x = screenX - maxWidth * I;
+
+      if (py === 35) ctx.moveTo(x, py);
+      else ctx.lineTo(x, py);
+    }
+    ctx.stroke();
+
+    // fill central region lightly
+    ctx.fillStyle = "rgba(220, 38, 38, 0.12)";
+    ctx.beginPath();
+    ctx.moveTo(screenX, 35);
+    for (let py = 35; py <= H-35; py++) {
+      const y = py - cy;
+      const theta = Math.atan2(y, L);
+      const beta = Math.PI * slitWidth * Math.sin(theta) / lambda;
+      const I = sincSquared(beta);
+      const x = screenX - maxWidth * I;
+      ctx.lineTo(x, py);
+    }
+    ctx.lineTo(screenX, H-35);
+    ctx.closePath();
+    ctx.fill();
+
+    // mark minima on screen
+    ctx.strokeStyle = "rgba(0,0,0,0.28)";
+    ctx.lineWidth = 1;
+    for (let m = 1; m <= 4; m++) {
+      const s = m * lambda / slitWidth;
+      if (s < 1) {
+        const yoff = L * np_tan_from_sin(s);
+        [cy + yoff, cy - yoff].forEach(yy => {
+          if (yy > 35 && yy < H-35) {
+            ctx.beginPath();
+            ctx.moveTo(screenX - maxWidth - 10, yy);
+            ctx.lineTo(screenX + 10, yy);
+            ctx.stroke();
+          }
+        });
+      }
+    }
+
+    ctx.fillStyle = "#111827";
+    ctx.font = "16px Arial";
+    ctx.fillText("main lobes on screen", screenX - 150, 50);
+  }
+
+  function np_tan_from_sin(s) {
+    const c = Math.sqrt(Math.max(0, 1 - s*s));
+    return s / Math.max(c, 1e-8);
+  }
+
+  function drawLabels(lambda, slitWidth) {
+    ctx.fillStyle = "#111827";
+    ctx.font = "18px Arial";
+    ctx.fillText(`visual λ = ${lambda}`, 70, H - 28);
+    ctx.fillText(`slit width a = ${slitWidth}`, 250, H - 28);
+
+    let relation = "";
+    if (slitWidth < 0.9 * lambda) relation = "a < λ  → strong diffraction";
+    else if (slitWidth < 1.5 * lambda) relation = "a ≈ λ  → noticeable diffraction";
+    else relation = "a > λ  → weaker spreading";
+    ctx.fillText(relation, 520, H - 28);
+  }
+
+  function render() {
+    updateReadouts();
+
+    const slitWidth = parseFloat(slitSlider.value);
+    const lambda = parseFloat(waveSlider.value);
+    const npts = parseInt(pointsSlider.value);
+
+    const slitTop = H/2 - slitWidth/2;
+    const slitBottom = H/2 + slitWidth/2;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, W, H);
+
+    drawIncidentWave(lambda);
+    drawBarrier(slitTop, slitBottom);
+    drawCenterlineDirections(slitTop, slitBottom);
+    drawWavelets(lambda, slitTop, slitBottom, npts);
+    drawScreenAndProfile(slitWidth, lambda);
+    drawLabels(lambda, slitWidth);
+  }
+
+  function animate(timestamp) {
+    if (lastTime === null) lastTime = timestamp;
+    const dt = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+
+    if (running) phase += dt * parseFloat(speedSlider.value);
+    render();
+    requestAnimationFrame(animate);
+  }
+
+  playBtn.addEventListener("click", () => {
+    running = !running;
+    playBtn.textContent = running ? "Pause" : "Play";
+  });
+
+  toggleBtn.addEventListener("click", () => {
+    showPoints = !showPoints;
+    toggleBtn.textContent = showPoints ? "Hide Huygens Points" : "Show Huygens Points";
+    render();
+  });
+
+  resetBtn.addEventListener("click", () => {
+    phase = 0;
+    render();
+  });
+
+  slitSlider.addEventListener("input", render);
+  waveSlider.addEventListener("input", render);
+  pointsSlider.addEventListener("input", render);
+  speedSlider.addEventListener("input", render);
+
+  render();
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>

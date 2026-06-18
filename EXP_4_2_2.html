@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2D Interference Widget</title>
+<style>
+  body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#111827;
+    color:#f9fafb;
+    display:flex;
+    justify-content:center;
+    padding:20px;
+  }
+  .wrap{
+    width:min(1000px, 96vw);
+    background:#1f2937;
+    border-radius:16px;
+    padding:18px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.35);
+  }
+  h1{
+    margin:0 0 8px 0;
+    text-align:center;
+    font-size:1.5rem;
+  }
+  .sub{
+    text-align:center;
+    color:#cbd5e1;
+    margin-bottom:14px;
+    line-height:1.45;
+  }
+  .controls{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .card{
+    background:#111827;
+    border-radius:12px;
+    padding:12px;
+    text-align:center;
+  }
+  .card .label{
+    color:#cbd5e1;
+    font-size:0.95rem;
+    margin-bottom:4px;
+  }
+  .card .value{
+    font-size:1.05rem;
+    font-weight:bold;
+  }
+  canvas{
+    display:block;
+    width:100%;
+    height:auto;
+    background:white;
+    border-radius:12px;
+  }
+  .note{
+    margin-top:10px;
+    color:#cbd5e1;
+    line-height:1.45;
+    font-size:0.95rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>2D Interference of Two Point Sources</h1>
+  <div class="sub">
+    Drag the black point P. The two sources are fixed and emit in phase.<br>
+    The widget computes r₁, r₂, Δr, and classifies the interference at P.
+  </div>
+
+  <div class="controls">
+    <div class="card"><div class="label">Wavelength λ</div><div class="value" id="lambdaVal">1.00 m</div></div>
+    <div class="card"><div class="label">r₁</div><div class="value" id="r1Val">—</div></div>
+    <div class="card"><div class="label">r₂</div><div class="value" id="r2Val">—</div></div>
+    <div class="card"><div class="label">Δr = r₂ - r₁</div><div class="value" id="drVal">—</div></div>
+  </div>
+
+  <div class="controls">
+    <div class="card"><div class="label">Δr / λ</div><div class="value" id="ratioVal">—</div></div>
+    <div class="card"><div class="label">Phase Difference φ</div><div class="value" id="phiVal">—</div></div>
+    <div class="card"><div class="label">Effective Amplitude / A</div><div class="value" id="ampVal">—</div></div>
+    <div class="card"><div class="label">Classification</div><div class="value" id="classVal">—</div></div>
+  </div>
+
+  <canvas id="canvas" width="940" height="560"></canvas>
+
+  <div class="note">
+    In-phase sources: constructive interference when Δr = mλ, destructive interference when Δr = (m + 1/2)λ.
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+
+  const lambda = 1.0; // meters
+  document.getElementById("lambdaVal").textContent = lambda.toFixed(2) + " m";
+
+  const W = canvas.width;
+  const H = canvas.height;
+
+  const margin = 70;
+  const xMin = 0, xMax = 10;
+  const yMin = 0, yMax = 6;
+
+  const S1 = {x: 2, y: 3};
+  const S2 = {x: 5, y: 3};
+  const P  = {x: 7.2, y: 4.6};
+
+  let dragging = false;
+
+  function sx(x){ return margin + (x - xMin) * (W - 2*margin) / (xMax - xMin); }
+  function sy(y){ return H - margin - (y - yMin) * (H - 2*margin) / (yMax - yMin); }
+  function wx(px){ return xMin + (px - margin) * (xMax - xMin) / (W - 2*margin); }
+  function wy(py){ return yMin + (H - margin - py) * (yMax - yMin) / (H - 2*margin); }
+
+  function dist(a,b){
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
+  function nearestInteger(x){
+    return Math.round(x);
+  }
+
+  function nearestHalfInteger(x){
+    return Math.round(x - 0.5) + 0.5;
+  }
+
+  function classify(dr){
+    const ratio = dr / lambda;
+    const cDist = Math.abs(ratio - nearestInteger(ratio));
+    const dDist = Math.abs(ratio - nearestHalfInteger(ratio));
+
+    if (cDist < 0.08) return "Constructive";
+    if (dDist < 0.08) return "Destructive";
+    return "Partial";
+  }
+
+  function drawGrid(){
+    ctx.strokeStyle = "#e5e7eb";
+    ctx.lineWidth = 1;
+    ctx.font = "14px Arial";
+    ctx.fillStyle = "#111827";
+
+    for(let x = xMin; x <= xMax; x += 1){
+      const X = sx(x);
+      ctx.beginPath();
+      ctx.moveTo(X, sy(yMin));
+      ctx.lineTo(X, sy(yMax));
+      ctx.stroke();
+      ctx.fillText(x.toFixed(0), X - 4, sy(yMin) + 22);
+    }
+
+    for(let y = yMin; y <= yMax; y += 1){
+      const Y = sy(y);
+      ctx.beginPath();
+      ctx.moveTo(sx(xMin), Y);
+      ctx.lineTo(sx(xMax), Y);
+      ctx.stroke();
+      ctx.fillText(y.toFixed(0), sx(xMin) - 24, Y + 5);
+    }
+
+    ctx.strokeStyle = "#374151";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(sx(xMin), sy(yMin));
+    ctx.lineTo(sx(xMax), sy(yMin));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(sx(xMin), sy(yMin));
+    ctx.lineTo(sx(xMin), sy(yMax));
+    ctx.stroke();
+
+    ctx.fillText("x (m)", sx(xMax) - 28, sy(yMin) + 44);
+    ctx.fillText("y (m)", sx(xMin) - 40, sy(yMax) - 10);
+  }
+
+  function drawPoint(pt, color, radius, label){
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(sx(pt.x), sy(pt.y), radius, 0, 2*Math.PI);
+    ctx.fill();
+
+    ctx.fillStyle = "#111827";
+    ctx.font = "16px Arial";
+    ctx.fillText(label, sx(pt.x) + 10, sy(pt.y) - 10);
+  }
+
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = "white";
+    ctx.fillRect(0,0,W,H);
+
+    drawGrid();
+
+    const r1 = dist(P, S1);
+    const r2 = dist(P, S2);
+    const dr = r2 - r1;
+    const phi = 2 * Math.PI * dr / lambda;
+    const amp = 2 * Math.abs(Math.cos(phi / 2));
+    const cls = classify(dr);
+
+    ctx.strokeStyle = "#2563eb";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(sx(S1.x), sy(S1.y));
+    ctx.lineTo(sx(P.x), sy(P.y));
+    ctx.stroke();
+
+    ctx.strokeStyle = "#16a34a";
+    ctx.beginPath();
+    ctx.moveTo(sx(S2.x), sy(S2.y));
+    ctx.lineTo(sx(P.x), sy(P.y));
+    ctx.stroke();
+
+    drawPoint(S1, "#2563eb", 8, "S₁");
+    drawPoint(S2, "#16a34a", 8, "S₂");
+    drawPoint(P, "#111827", 8, "P");
+
+    ctx.fillStyle = "#111827";
+    ctx.font = "17px Arial";
+    ctx.fillText("Blue segment: r₁", sx(3.3), sy(3.8));
+    ctx.fillText("Green segment: r₂", sx(4.6), sy(2.25));
+
+    document.getElementById("r1Val").textContent = r1.toFixed(3) + " m";
+    document.getElementById("r2Val").textContent = r2.toFixed(3) + " m";
+    document.getElementById("drVal").textContent = dr.toFixed(3) + " m";
+    document.getElementById("ratioVal").textContent = (dr/lambda).toFixed(3);
+    document.getElementById("phiVal").textContent = phi.toFixed(3) + " rad";
+    document.getElementById("ampVal").textContent = amp.toFixed(3);
+    document.getElementById("classVal").textContent = cls;
+  }
+
+  canvas.addEventListener("mousedown", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const px = (e.clientX - rect.left) * canvas.width / rect.width;
+    const py = (e.clientY - rect.top) * canvas.height / rect.height;
+    const d = Math.hypot(px - sx(P.x), py - sy(P.y));
+    if (d < 18) dragging = true;
+  });
+
+  canvas.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+    const rect = canvas.getBoundingClientRect();
+    const px = (e.clientX - rect.left) * canvas.width / rect.width;
+    const py = (e.clientY - rect.top) * canvas.height / rect.height;
+
+    P.x = Math.max(xMin, Math.min(xMax, wx(px)));
+    P.y = Math.max(yMin, Math.min(yMax, wy(py)));
+    render();
+  });
+
+  window.addEventListener("mouseup", () => dragging = false);
+  canvas.addEventListener("mouseleave", () => dragging = false);
+
+  render();
+})();
+</script>
+</body>
+</html>

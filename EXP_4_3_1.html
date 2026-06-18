@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2D Interference Pattern with Horizontal Screen</title>
+<style>
+  body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#111827;
+    color:#f9fafb;
+    display:flex;
+    justify-content:center;
+    padding:20px;
+  }
+  .wrap{
+    width:min(1180px, 98vw);
+    background:#1f2937;
+    border-radius:16px;
+    padding:18px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.35);
+  }
+  h1{
+    margin:0 0 8px 0;
+    text-align:center;
+    font-size:1.5rem;
+  }
+  .sub{
+    text-align:center;
+    color:#cbd5e1;
+    margin-bottom:14px;
+    line-height:1.45;
+  }
+  .controls{
+    display:grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .card{
+    background:#111827;
+    border-radius:12px;
+    padding:12px;
+    text-align:center;
+  }
+  .card label{
+    display:block;
+    color:#cbd5e1;
+    font-size:0.95rem;
+    margin-bottom:6px;
+  }
+  .value{
+    font-size:1.05rem;
+    font-weight:bold;
+  }
+  input[type="range"]{ width:100%; }
+  input[type="checkbox"]{
+    accent-color:#dc2626;
+  }
+  .panels{
+    display:grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap:14px;
+    align-items:start;
+  }
+  canvas{
+    display:block;
+    width:100%;
+    height:auto;
+    background:white;
+    border-radius:12px;
+  }
+  .note{
+    margin-top:10px;
+    color:#cbd5e1;
+    line-height:1.45;
+    font-size:0.95rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Full 2D Interference Pattern with a Horizontal Screen</h1>
+  <div class="sub">
+    The left panel shows the full 2D interference field. A horizontal screen at y = y_screen samples the pattern,
+    and the right panel shows the fringe strength along that screen.
+  </div>
+
+  <div class="controls">
+    <div class="card">
+      <label for="lambdaSlider">Wavelength λ (m)</label>
+      <input id="lambdaSlider" type="range" min="0.3" max="2.0" step="0.05" value="1.0">
+      <div class="value" id="lambdaVal">1.00 m</div>
+    </div>
+    <div class="card">
+      <label for="sepSlider">Source separation d (m)</label>
+      <input id="sepSlider" type="range" min="1.0" max="6.0" step="0.1" value="3.0">
+      <div class="value" id="sepVal">3.00 m</div>
+    </div>
+    <div class="card">
+      <label for="screenSlider">Screen position y_screen (m)</label>
+      <input id="screenSlider" type="range" min="0.5" max="5.5" step="0.1" value="5.0">
+      <div class="value" id="screenVal">5.00 m</div>
+    </div>
+    <div class="card">
+      <label for="gridSlider">Resolution</label>
+      <input id="gridSlider" type="range" min="120" max="300" step="20" value="180">
+      <div class="value" id="gridVal">180 × 108</div>
+    </div>
+    <div class="card">
+      <label for="attenToggle">1/r attenuation</label>
+      <input id="attenToggle" type="checkbox" checked style="width:20px;height:20px;margin-top:4px;">
+      <div class="value" id="attenVal">On</div>
+    </div>
+  </div>
+
+  <div class="panels">
+    <canvas id="fieldCanvas" width="760" height="620"></canvas>
+    <canvas id="profileCanvas" width="380" height="620"></canvas>
+  </div>
+
+  <div class="note">
+    With attenuation <strong>on</strong>, each source radiates a cylindrical wave whose amplitude falls off as 1/r:
+    <strong>E = A₀[cos(kr₁)/r₁ + cos(kr₂)/r₂]</strong>, with <strong>k = 2π/λ</strong>. The color map and screen
+    profile show |E| normalized to its maximum value over the plotted region. Because the two path amplitudes
+    1/r₁ and 1/r₂ are no longer equal away from the perpendicular bisector, destructive interference is no
+    longer perfectly dark — minima become shallower (and the whole pattern fades) farther from the sources.
+    With attenuation <strong>off</strong>, the original idealized far-field proxy <strong>|cos(π(r₂-r₁)/λ)|</strong>
+    is shown instead, where fringe visibility is always 100%.
+  </div>
+</div>
+
+<script>
+(() => {
+  const fieldCanvas = document.getElementById("fieldCanvas");
+  const fctx = fieldCanvas.getContext("2d");
+  const profileCanvas = document.getElementById("profileCanvas");
+  const pctx = profileCanvas.getContext("2d");
+
+  const lambdaSlider = document.getElementById("lambdaSlider");
+  const sepSlider = document.getElementById("sepSlider");
+  const screenSlider = document.getElementById("screenSlider");
+  const gridSlider = document.getElementById("gridSlider");
+  const attenToggle = document.getElementById("attenToggle");
+
+  const lambdaVal = document.getElementById("lambdaVal");
+  const sepVal = document.getElementById("sepVal");
+  const screenVal = document.getElementById("screenVal");
+  const gridVal = document.getElementById("gridVal");
+  const attenVal = document.getElementById("attenVal");
+
+  const W = fieldCanvas.width, H = fieldCanvas.height;
+  const PW = profileCanvas.width, PH = profileCanvas.height;
+
+  const margin = 70;
+  const xMin = 0, xMax = 10;
+  const yMin = 0, yMax = 6;
+
+  function sx(x){ return margin + (x - xMin) * (W - 2*margin) / (xMax - xMin); }
+  function sy(y){ return H - margin - (y - yMin) * (H - 2*margin) / (yMax - yMin); }
+
+  function currentParams() {
+    const lambda = parseFloat(lambdaSlider.value);
+    const d = parseFloat(sepSlider.value);
+    const yScreen = parseFloat(screenSlider.value);
+    const attenuate = attenToggle.checked;
+    const S1 = {x: 3.5 - d/2, y: 3.0};
+    const S2 = {x: 3.5 + d/2, y: 3.0};
+    return {lambda, d, yScreen, S1, S2, attenuate};
+  }
+
+  const R_MIN = 0.12; // clamp near sources to avoid 1/r blow-up at r->0
+
+  // Raw (unnormalized) field amplitude with optional 1/r geometric attenuation.
+  // Two in-phase cylindrical-wave point sources: E = A0 * [cos(k r1)/r1 + cos(k r2)/r2]
+  function rawFieldAt(x, y, lambda, S1, S2, attenuate) {
+    const k = 2 * Math.PI / lambda;
+    const r1 = Math.max(Math.hypot(x - S1.x, y - S1.y), R_MIN);
+    const r2 = Math.max(Math.hypot(x - S2.x, y - S2.y), R_MIN);
+    if (attenuate) {
+      return Math.cos(k * r1) / r1 + Math.cos(k * r2) / r2;
+    }
+    // Idealized proxy (original behavior): equal-amplitude sources, no 1/r falloff.
+    // |cos(pi * dr / lambda)| is the standard two-slit fringe-visibility envelope.
+    const dr = r2 - r1;
+    return Math.abs(Math.cos(Math.PI * dr / lambda));
+  }
+
+  // Scans the plotted region to find the field's max |E| for normalization,
+  // so the color scale and screen profile stay in a consistent 0..1 range
+  // as lambda, d, and attenuation toggle change.
+  function fieldMaxAbs(lambda, S1, S2, attenuate, nx, ny) {
+    if (!attenuate) return 1; // proxy is already bounded in [0,1]
+    let maxAbs = 0;
+    const sxStep = Math.max(1, Math.floor(nx / 90));
+    const syStep = Math.max(1, Math.floor(ny / 60));
+    for (let i = 0; i < nx; i += sxStep) {
+      const x = xMin + (i + 0.5) * (xMax - xMin) / nx;
+      for (let j = 0; j < ny; j += syStep) {
+        const y = yMin + (j + 0.5) * (yMax - yMin) / ny;
+        const e = Math.abs(rawFieldAt(x, y, lambda, S1, S2, true));
+        if (e > maxAbs) maxAbs = e;
+      }
+    }
+    return maxAbs > 0 ? maxAbs : 1;
+  }
+
+  function ampNormAt(x, y, lambda, S1, S2, attenuate, norm) {
+    const e = rawFieldAt(x, y, lambda, S1, S2, attenuate);
+    return Math.min(1, Math.abs(e) / norm);
+  }
+
+  function colorFromAmp(a) {
+    const v = Math.max(0, Math.min(1, a));
+    const r = Math.round(255 * v);
+    const g = Math.round(190 * v);
+    const b = Math.round(40 + 160 * (1 - v));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function updateReadouts(nx, ny) {
+    lambdaVal.textContent = parseFloat(lambdaSlider.value).toFixed(2) + " m";
+    sepVal.textContent = parseFloat(sepSlider.value).toFixed(2) + " m";
+    screenVal.textContent = parseFloat(screenSlider.value).toFixed(2) + " m";
+    gridVal.textContent = `${nx} × ${ny}`;
+    attenVal.textContent = attenToggle.checked ? "On" : "Off";
+  }
+
+  function drawField() {
+    const {lambda, yScreen, S1, S2, attenuate} = currentParams();
+    const nx = parseInt(gridSlider.value);
+    const aspect = (yMax - yMin) / (xMax - xMin);
+    const ny = Math.round(nx * aspect);
+
+    updateReadouts(nx, ny);
+
+    const norm = fieldMaxAbs(lambda, S1, S2, attenuate, nx, ny);
+
+    fctx.clearRect(0, 0, W, H);
+    fctx.fillStyle = "white";
+    fctx.fillRect(0, 0, W, H);
+
+    const plotW = W - 2 * margin;
+    const plotH = H - 2 * margin;
+
+    for (let i = 0; i < nx; i++) {
+      for (let j = 0; j < ny; j++) {
+        const x = xMin + (i + 0.5) * (xMax - xMin) / nx;
+        const y = yMin + (j + 0.5) * (yMax - yMin) / ny;
+        const a = ampNormAt(x, y, lambda, S1, S2, attenuate, norm);
+
+        fctx.fillStyle = colorFromAmp(a);
+        const px = margin + i * plotW / nx;
+        const py = H - margin - (j + 1) * plotH / ny;
+        const pw = plotW / nx + 0.6;
+        const ph = plotH / ny + 0.6;
+        fctx.fillRect(px, py, pw, ph);
+      }
+    }
+
+    // axes
+    fctx.strokeStyle = "#374151";
+    fctx.lineWidth = 1.5;
+    fctx.beginPath();
+    fctx.moveTo(sx(xMin), sy(yMin));
+    fctx.lineTo(sx(xMax), sy(yMin));
+    fctx.stroke();
+
+    fctx.beginPath();
+    fctx.moveTo(sx(xMin), sy(yMin));
+    fctx.lineTo(sx(xMin), sy(yMax));
+    fctx.stroke();
+
+    fctx.strokeStyle = "#e5e7eb";
+    fctx.lineWidth = 1;
+    fctx.font = "14px Arial";
+    fctx.fillStyle = "#111827";
+
+    for (let x = xMin; x <= xMax; x += 1) {
+      const X = sx(x);
+      fctx.beginPath();
+      fctx.moveTo(X, sy(yMin));
+      fctx.lineTo(X, sy(yMax));
+      fctx.stroke();
+      fctx.fillText(x.toFixed(0), X - 4, sy(yMin) + 22);
+    }
+
+    for (let y = yMin; y <= yMax; y += 1) {
+      const Y = sy(y);
+      fctx.beginPath();
+      fctx.moveTo(sx(xMin), Y);
+      fctx.lineTo(sx(xMax), Y);
+      fctx.stroke();
+      fctx.fillText(y.toFixed(0), sx(xMin) - 24, Y + 5);
+    }
+
+    fctx.fillText("x (m)", sx(xMax) - 28, sy(yMin) + 44);
+    fctx.fillText("y (m)", sx(xMin) - 40, sy(yMax) - 10);
+
+    // sources
+    fctx.fillStyle = "#111827";
+    [S1, S2].forEach((S, i) => {
+      fctx.beginPath();
+      fctx.arc(sx(S.x), sy(S.y), 8, 0, 2 * Math.PI);
+      fctx.fill();
+      fctx.fillText(i === 0 ? "S₁" : "S₂", sx(S.x) + 10, sy(S.y) - 10);
+    });
+
+    // horizontal screen
+    fctx.strokeStyle = "#111827";
+    fctx.lineWidth = 4;
+    fctx.beginPath();
+    fctx.moveTo(sx(xMin), sy(yScreen));
+    fctx.lineTo(sx(xMax), sy(yScreen));
+    fctx.stroke();
+
+    fctx.font = "16px Arial";
+    const nearTop = yScreen > yMax - 0.8;
+    const screenLabelY = nearTop ? sy(yScreen) + 22 : sy(yScreen) - 10;
+    fctx.fillText("horizontal screen", sx(6.8), screenLabelY);
+
+    // Legend in the top-right corner with an opaque backing patch so it
+    // stays legible no matter where the screen line or field pattern
+    // happens to sit underneath it.
+    const legX = W - margin - 178, legY = 16, legW = 170, legH = 50;
+    fctx.fillStyle = "rgba(255,255,255,0.88)";
+    fctx.fillRect(legX, legY, legW, legH);
+    fctx.strokeStyle = "#d1d5db";
+    fctx.lineWidth = 1;
+    fctx.strokeRect(legX, legY, legW, legH);
+    fctx.font = "15px Arial";
+    fctx.fillStyle = "#111827";
+    fctx.fillText("Bright: constructive", legX + 8, legY + 20);
+    fctx.fillText("Dark: destructive", legX + 8, legY + 40);
+  }
+
+  function drawProfile() {
+    const {lambda, yScreen, S1, S2, attenuate} = currentParams();
+    const nx = parseInt(gridSlider.value);
+    const aspect = (yMax - yMin) / (xMax - xMin);
+    const ny = Math.round(nx * aspect);
+    const norm = fieldMaxAbs(lambda, S1, S2, attenuate, nx, ny);
+
+    pctx.clearRect(0, 0, PW, PH);
+    pctx.fillStyle = "white";
+    pctx.fillRect(0, 0, PW, PH);
+
+    const left = 60, right = 20, top = 40, bottom = 55;
+    const plotW = PW - left - right;
+    const plotH = PH - top - bottom;
+
+    // axes
+    pctx.strokeStyle = "#374151";
+    pctx.lineWidth = 1.5;
+    pctx.beginPath();
+    pctx.moveTo(left, PH - bottom);
+    pctx.lineTo(PW - right, PH - bottom);
+    pctx.stroke();
+
+    pctx.beginPath();
+    pctx.moveTo(left, PH - bottom);
+    pctx.lineTo(left, top);
+    pctx.stroke();
+
+    // grid
+    pctx.strokeStyle = "#e5e7eb";
+    pctx.lineWidth = 1;
+    pctx.font = "13px Arial";
+    pctx.fillStyle = "#111827";
+
+    for (let i = 0; i <= 5; i++) {
+      const y = PH - bottom - i * plotH / 5;
+      pctx.beginPath();
+      pctx.moveTo(left, y);
+      pctx.lineTo(PW - right, y);
+      pctx.stroke();
+      const label = (i / 5).toFixed(1);
+      pctx.fillText(label, 14, y + 4);
+    }
+
+    for (let i = 0; i <= 5; i++) {
+      const x = left + i * plotW / 5;
+      pctx.beginPath();
+      pctx.moveTo(x, PH - bottom);
+      pctx.lineTo(x, top);
+      pctx.stroke();
+      const label = (xMin + i * (xMax - xMin) / 5).toFixed(1);
+      pctx.fillText(label, x - 10, PH - bottom + 20);
+    }
+
+    // filled fringe profile
+    pctx.fillStyle = "rgba(220, 38, 38, 0.18)";
+    pctx.beginPath();
+    for (let i = 0; i <= 500; i++) {
+      const xVal = xMin + i * (xMax - xMin) / 500;
+      const a = ampNormAt(xVal, yScreen, lambda, S1, S2, attenuate, norm);
+      const x = left + (xVal - xMin) * plotW / (xMax - xMin);
+      const y = PH - bottom - a * plotH;
+      if (i === 0) pctx.moveTo(x, PH - bottom);
+      pctx.lineTo(x, y);
+    }
+    pctx.lineTo(left + plotW, PH - bottom);
+    pctx.closePath();
+    pctx.fill();
+
+    // line
+    pctx.strokeStyle = "#dc2626";
+    pctx.lineWidth = 2.4;
+    pctx.beginPath();
+    for (let i = 0; i <= 500; i++) {
+      const xVal = xMin + i * (xMax - xMin) / 500;
+      const a = ampNormAt(xVal, yScreen, lambda, S1, S2, attenuate, norm);
+      const x = left + (xVal - xMin) * plotW / (xMax - xMin);
+      const y = PH - bottom - a * plotH;
+      if (i === 0) pctx.moveTo(x, y);
+      else pctx.lineTo(x, y);
+    }
+    pctx.stroke();
+
+    pctx.fillStyle = "#111827";
+    pctx.font = "16px Arial";
+    pctx.fillText("Fringe strength on screen", 78, 24);
+    pctx.fillText("x on screen (m)", PW/2 - 48, PH - 16);
+
+    pctx.save();
+    pctx.translate(18, PH/2 + 60);
+    pctx.rotate(-Math.PI/2);
+    pctx.fillText("normalized amplitude", 0, 0);
+    pctx.restore();
+
+    // legend (stacked beneath the title, right-aligned, to avoid overlap)
+    pctx.strokeStyle = "#dc2626";
+    pctx.lineWidth = 2.4;
+    pctx.beginPath();
+    pctx.moveTo(left, 38);
+    pctx.lineTo(left + 24, 38);
+    pctx.stroke();
+    pctx.fillStyle = "#111827";
+    pctx.font = "13px Arial";
+    pctx.fillText("|E| / |E|max", left + 32, 42);
+
+    pctx.font = "12px Arial";
+    pctx.fillStyle = "#374151";
+    pctx.fillText(`screen at y = ${yScreen.toFixed(2)} m`, left + 130, 42);
+  }
+
+  function render() {
+    drawField();
+    drawProfile();
+  }
+
+  lambdaSlider.addEventListener("input", render);
+  sepSlider.addEventListener("input", render);
+  screenSlider.addEventListener("input", render);
+  gridSlider.addEventListener("input", render);
+  attenToggle.addEventListener("change", render);
+
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ch 2-5 — Wave Interference</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;1,300&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap');
+
+  :root {
+    --purple-50:#EEEDFE;--purple-400:#7F77DD;--purple-600:#534AB7;--purple-800:#3C3489;
+    --teal-50:#E1F5EE;--teal-600:#0F6E56;--teal-800:#085041;
+    --coral-50:#FAECE7;--coral-600:#993C1D;--coral-800:#712B13;
+    --amber-50:#FEF3E2;--amber-600:#B45309;
+    --gray-50:#F1EFE8;--gray-400:#888780;--gray-600:#5F5E5A;
+    --bg:#FAFAF8;--surface:#FFFFFF;
+    --border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);
+    --text:#1a1a18;--text-2:#5F5E5A;--text-3:#888780;
+    --radius:10px;--radius-lg:16px;
+    --mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;--serif:'Source Serif 4',serif;
+  }
+  @media(prefers-color-scheme:dark){:root{
+    --purple-50:#26215C;--purple-400:#7F77DD;--purple-600:#AFA9EC;--purple-800:#CECBF6;
+    --teal-50:#04342C;--teal-600:#5DCAA5;--teal-800:#9FE1CB;
+    --coral-50:#4A1B0C;--coral-600:#F0997B;--coral-800:#F5C4B3;
+    --amber-50:#3D2200;--amber-600:#F59E0B;
+    --gray-50:#2C2C2A;--gray-400:#888780;--gray-600:#B4B2A9;
+    --bg:#141412;--surface:#1e1e1b;
+    --border:rgba(255,255,255,0.09);--border-strong:rgba(255,255,255,0.16);
+    --text:#EEECEA;--text-2:#B4B2A9;--text-3:#888780;
+  }}
+
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh}
+
+  .page-header{padding:3rem 2rem 2rem;border-bottom:0.5px solid var(--border);max-width:900px;margin:0 auto}
+  .chapter-label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--purple-400);margin-bottom:.5rem;text-transform:uppercase}
+  h1{font-family:var(--serif);font-weight:300;font-size:clamp(1.6rem,4vw,2.4rem);line-height:1.2;margin-bottom:.75rem}
+  .subtitle{font-size:15px;color:var(--text-2);line-height:1.6;max-width:580px}
+
+  .main{max-width:900px;margin:0 auto;padding:2rem}
+  .section-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin-bottom:1.25rem;display:flex;align-items:center;gap:10px}
+  .section-label::after{content:'';flex:1;height:0.5px;background:var(--border)}
+
+  svg.concept-map{width:100%;height:auto;display:block;margin-bottom:1rem}
+  .ng rect{transition:opacity .15s,stroke-width .15s;cursor:pointer}
+  .ng:hover rect{opacity:.82}
+  .ng.sel rect{stroke-width:2.5px !important}
+
+  #detailPanel{margin-bottom:2rem;display:none}
+  #detailPanel.open{display:block;animation:slideIn .2s ease}
+  @keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+
+  .dp-wrap{border-radius:var(--radius-lg);overflow:hidden;border:0.5px solid var(--border-strong)}
+  .dp-head{padding:12px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid var(--border)}
+  .dp-title{font-size:15px;font-weight:500;color:var(--text)}
+  .dp-close{background:none;border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:4px 12px;cursor:pointer;font-size:12px;color:var(--text-2);font-family:var(--mono)}
+  .dp-close:hover{background:var(--gray-50)}
+  .dp-body{padding:18px;background:var(--surface);display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:600px){.dp-body{grid-template-columns:1fr}}
+  .dp-explain{font-size:14px;color:var(--text-2);line-height:1.75}
+  .dp-explain strong{color:var(--text);font-weight:500}
+  .dp-right{display:flex;flex-direction:column;gap:10px}
+  .dp-formula{font-family:var(--mono);font-size:13px;padding:14px 16px;border-radius:var(--radius);white-space:pre-line;line-height:1.7;border-width:0.5px;border-style:solid}
+  .dp-why{font-size:13px;color:var(--text-2);line-height:1.6;padding:10px 14px;background:var(--gray-50);border-left-width:2px;border-left-style:solid}
+
+  .dp-quiz{border-top:0.5px solid var(--border);padding:16px 18px;background:var(--surface)}
+  .dq-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+  .dq-type{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--teal-50);color:var(--teal-600);font-family:var(--mono);text-transform:none;letter-spacing:0}
+  .dq-q{font-family:var(--serif);font-size:15px;line-height:1.55;color:var(--text);margin-bottom:12px}
+  .dq-opts{display:flex;flex-direction:column;gap:7px}
+  .dq-opt{border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:9px 13px;cursor:pointer;font-size:13px;font-family:var(--mono);color:var(--text-2);background:transparent;text-align:left;transition:all .12s;line-height:1.4}
+  .dq-opt:hover:not(:disabled){background:var(--gray-50);color:var(--text)}
+  .dq-opt:disabled{cursor:default}
+  .dq-opt.correct{border-color:var(--teal-600);background:var(--teal-50);color:var(--teal-800)}
+  .dq-opt.wrong{border-color:var(--coral-600);background:var(--coral-50);color:var(--coral-800)}
+  .dq-fill{width:100%;border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:9px 13px;font-size:13px;font-family:var(--mono);color:var(--text);background:var(--bg);margin-bottom:8px}
+  .dq-fill:focus{outline:none;box-shadow:0 0 0 2px var(--purple-400)}
+  .dq-submit{border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:8px 16px;cursor:pointer;font-size:12px;font-family:var(--mono);color:var(--text-2);background:transparent}
+  .dq-submit:hover{background:var(--gray-50)}
+  .dq-tf{display:flex;gap:8px}
+  .dq-tf-btn{flex:1;border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:9px;cursor:pointer;font-size:13px;font-family:var(--mono);color:var(--text-2);background:transparent;transition:all .12s}
+  .dq-tf-btn:hover:not(:disabled){background:var(--gray-50)}
+  .dq-tf-btn:disabled{cursor:default}
+  .dq-tf-btn.correct{border-color:var(--teal-600);background:var(--teal-50);color:var(--teal-800)}
+  .dq-tf-btn.wrong{border-color:var(--coral-600);background:var(--coral-50);color:var(--coral-800)}
+  .dq-feedback{margin-top:10px;padding:10px 13px;font-size:13px;line-height:1.6;color:var(--text-2);background:var(--gray-50);border-left:2px solid var(--purple-400);display:none}
+  .dq-feedback.show{display:block}
+  .dq-feedback strong{color:var(--text);font-weight:500}
+  .dq-retry{margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--purple-400);cursor:pointer;background:none;border:none;padding:0}
+  .dq-retry:hover{text-decoration:underline}
+
+  /* explorer */
+  .explorer-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+  .explorer-header{padding:1rem 1.25rem;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .explorer-title{font-size:14px;font-weight:500}
+  .mode-toggle{display:flex;gap:6px;flex-wrap:wrap}
+  .mode-btn{border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:5px 12px;cursor:pointer;font-size:12px;font-family:var(--mono);color:var(--text-2);background:transparent;transition:all .12s}
+  .mode-btn:hover{background:var(--gray-50)}
+  .mode-btn.active{border-color:var(--purple-400);background:var(--purple-50);color:var(--purple-800)}
+
+  #cvFringe{display:block;width:100%;height:340px;background:var(--bg)}
+  #cvPattern{display:block;width:100%;height:140px;background:var(--bg);border-top:0.5px solid var(--border)}
+
+  .explorer-controls{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;border-top:0.5px solid var(--border)}
+  @media(max-width:600px){.explorer-controls{grid-template-columns:1fr 1fr}}
+  .ctrl-row{display:flex;flex-direction:column;gap:6px}
+  .ctrl-label{display:flex;justify-content:space-between;align-items:baseline}
+  .ctrl-name{font-size:12px;color:var(--text-2)}
+  .ctrl-val{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--purple-400)}
+  input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:var(--border-strong);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--purple-600);cursor:pointer;transition:transform .1s}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
+
+  .readouts{display:grid;grid-template-columns:repeat(4,1fr);border-top:0.5px solid var(--border)}
+  .readout{padding:.85rem 1rem;border-right:0.5px solid var(--border)}
+  .readout:last-child{border-right:none}
+  .readout-label{font-size:10px;color:var(--text-3);font-family:var(--mono);margin-bottom:3px}
+  .readout-val{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--text)}
+
+  .quiz-card{margin-top:2rem;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+  .quiz-header{padding:.75rem 1.25rem;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+  .quiz-tag{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)}
+  .quiz-type-tag{font-size:11px;background:var(--teal-50);color:var(--teal-600);padding:2px 8px;border-radius:20px;font-family:var(--mono)}
+  .quiz-body{padding:1.25rem}
+  .quiz-q{font-family:var(--serif);font-size:16px;line-height:1.55;color:var(--text);margin-bottom:1rem}
+  .quiz-opts{display:flex;flex-direction:column;gap:8px}
+  .quiz-opt{border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:10px 14px;cursor:pointer;font-size:13px;font-family:var(--mono);color:var(--text-2);background:transparent;text-align:left;transition:all .12s}
+  .quiz-opt:hover:not(:disabled){background:var(--gray-50);color:var(--text)}
+  .quiz-opt:disabled{cursor:default}
+  .quiz-opt.correct{border-color:var(--teal-600);background:var(--teal-50);color:var(--teal-800)}
+  .quiz-opt.wrong{border-color:var(--coral-600);background:var(--coral-50);color:var(--coral-800)}
+  .quiz-feedback{margin-top:1rem;padding:12px 14px;font-size:13px;line-height:1.6;color:var(--text-2);background:var(--gray-50);border-left:2px solid var(--purple-400);display:none}
+  .quiz-feedback strong{color:var(--text);font-weight:500}
+
+  footer{max-width:900px;margin:3rem auto 0;padding:1.5rem 2rem;border-top:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-3);font-family:var(--mono)}
+  .nav-link{color:var(--purple-400);text-decoration:none}
+  .nav-link:hover{color:var(--purple-600)}
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="chapter-label">Chapter 2-5</div>
+  <h1>Wave interference — simple geometry</h1>
+  <p class="subtitle">Two coherent waves from different sources arrive at every point with a phase difference that depends only on path length. The result: a permanent pattern of constructive and destructive interference.</p>
+</header>
+
+<main class="main">
+  <div class="section-label">Concept map — click any node</div>
+
+  <svg class="concept-map" viewBox="0 0 860 800" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+    <style>
+      .ng rect{transition:opacity .15s,stroke-width .15s;cursor:pointer}
+      .ng:hover rect{opacity:.82}
+      .ng.sel rect{stroke-width:2.5px !important}
+      .n-gray  {fill:var(--gray-50);  stroke:var(--gray-400)}
+      .n-purple{fill:var(--purple-50);stroke:var(--purple-400)}
+      .n-teal  {fill:var(--teal-50);  stroke:var(--teal-600)}
+      .n-coral {fill:var(--coral-50); stroke:var(--coral-600)}
+      .n-amber {fill:var(--amber-50); stroke:var(--amber-600)}
+      .tb{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;fill:var(--text)}
+      .ts{font-family:'DM Sans',sans-serif;font-size:11px;fill:var(--text-2)}
+      .tm{font-family:'JetBrains Mono',monospace;font-size:11.5px;fill:var(--purple-400)}
+      .ag{stroke:var(--gray-400);  fill:none;stroke-width:1;marker-end:url(#arr)}
+      .ap{stroke:var(--purple-400);fill:none;stroke-width:1;marker-end:url(#arr)}
+      .at{stroke:var(--teal-600);  fill:none;stroke-width:1;marker-end:url(#arr)}
+      .ac{stroke:var(--coral-600); fill:none;stroke-width:1;marker-end:url(#arr)}
+    </style>
+
+    <!-- ROW 1: coherent sources -->
+    <g class="ng" id="n-coh" onclick="showNode('coh')">
+      <rect x="230" y="20" width="400" height="56" rx="8" stroke-width="0.5" class="n-purple"/>
+      <text class="tb" x="430" y="42" text-anchor="middle" dominant-baseline="central">Two coherent sources</text>
+      <text class="ts" x="430" y="60" text-anchor="middle" dominant-baseline="central">same frequency ω, same wavenumber k — but spatially separated</text>
+    </g>
+    <line x1="430" y1="76" x2="430" y2="108" class="ap"/>
+
+    <!-- ROW 2: path difference -->
+    <g class="ng" id="n-path" onclick="showNode('path')">
+      <rect x="230" y="108" width="400" height="56" rx="8" stroke-width="0.5" class="n-gray"/>
+      <text class="tb" x="430" y="130" text-anchor="middle" dominant-baseline="central">Path length difference  Δr = r₂ − r₁</text>
+      <text class="ts" x="430" y="148" text-anchor="middle" dominant-baseline="central">each source is a different distance from the observer</text>
+    </g>
+    <line x1="430" y1="164" x2="430" y2="196" class="ag"/>
+
+    <!-- ROW 3: phase difference -->
+    <g class="ng" id="n-phase" onclick="showNode('phase')">
+      <rect x="200" y="196" width="460" height="58" rx="8" stroke-width="0.5" class="n-purple"/>
+      <text class="tb" x="430" y="218" text-anchor="middle" dominant-baseline="central">Phase difference</text>
+      <text class="tm" x="430" y="238" text-anchor="middle" dominant-baseline="central">Δφ = (2π/λ) · Δr</text>
+    </g>
+
+    <!-- branch left: constructive / right: destructive -->
+    <path d="M200 225 L130 225 L130 310" class="at"/>
+    <path d="M660 225 L730 225 L730 310" class="ac"/>
+    <line x1="430" y1="254" x2="430" y2="310" class="ag"/>
+
+    <!-- ROW 4a: constructive -->
+    <g class="ng" id="n-con" onclick="showNode('con')">
+      <rect x="30" y="310" width="220" height="68" rx="8" stroke-width="0.5" class="n-teal"/>
+      <text class="tb" x="140" y="332" text-anchor="middle" dominant-baseline="central">Constructive</text>
+      <text class="tm" x="140" y="352" text-anchor="middle" dominant-baseline="central">Δφ = 2mπ</text>
+      <text class="ts" x="140" y="368" text-anchor="middle" dominant-baseline="central">Δr = mλ</text>
+    </g>
+
+    <!-- ROW 4b: amplitudes -->
+    <g class="ng" id="n-amp" onclick="showNode('amp')">
+      <rect x="285" y="310" width="290" height="68" rx="8" stroke-width="0.5" class="n-gray"/>
+      <text class="tb" x="430" y="332" text-anchor="middle" dominant-baseline="central">Amplitude limits</text>
+      <text class="tm" x="430" y="352" text-anchor="middle" dominant-baseline="central">Aₘₐₓ = A₁ + A₂</text>
+      <text class="tm" x="430" y="368" text-anchor="middle" dominant-baseline="central">Aₘᵢₙ = |A₁ − A₂|</text>
+    </g>
+
+    <!-- ROW 4c: destructive -->
+    <g class="ng" id="n-des" onclick="showNode('des')">
+      <rect x="610" y="310" width="220" height="68" rx="8" stroke-width="0.5" class="n-coral"/>
+      <text class="tb" x="720" y="332" text-anchor="middle" dominant-baseline="central">Destructive</text>
+      <text class="tm" x="720" y="352" text-anchor="middle" dominant-baseline="central">Δφ = (2m+1)π</text>
+      <text class="ts" x="720" y="368" text-anchor="middle" dominant-baseline="central">Δr = (m+½)λ</text>
+    </g>
+
+    <!-- arrows down -->
+    <line x1="140" y1="378" x2="140" y2="438" class="at"/>
+    <line x1="430" y1="378" x2="430" y2="438" class="ag"/>
+    <line x1="720" y1="378" x2="720" y2="438" class="ac"/>
+
+    <!-- ROW 5: phasor method -->
+    <g class="ng" id="n-phasor" onclick="showNode('phasor')">
+      <rect x="30" y="438" width="220" height="68" rx="8" stroke-width="0.5" class="n-teal"/>
+      <text class="tb" x="140" y="460" text-anchor="middle" dominant-baseline="central">Phasor addition</text>
+      <text class="tm" x="140" y="480" text-anchor="middle" dominant-baseline="central">Ũ = Ũ₁ + Ũ₂</text>
+      <text class="ts" x="140" y="496" text-anchor="middle" dominant-baseline="central">Aₑᵢᵠ = Ae^{ikr+iφ₀}</text>
+    </g>
+
+    <!-- ROW 5b: observer point -->
+    <g class="ng" id="n-obs" onclick="showNode('obs')">
+      <rect x="285" y="438" width="290" height="68" rx="8" stroke-width="0.5" class="n-gray"/>
+      <text class="tb" x="430" y="460" text-anchor="middle" dominant-baseline="central">Observer at point P</text>
+      <text class="ts" x="430" y="480" text-anchor="middle" dominant-baseline="central">Φ₁ = kr₁ + φ₁,  Φ₂ = kr₂ + φ₂</text>
+      <text class="ts" x="430" y="496" text-anchor="middle" dominant-baseline="central">total phase includes path + source phase</text>
+    </g>
+
+    <!-- ROW 5c: 2D pattern -->
+    <g class="ng" id="n-2d" onclick="showNode('2d')">
+      <rect x="610" y="438" width="220" height="68" rx="8" stroke-width="0.5" class="n-coral"/>
+      <text class="tb" x="720" y="460" text-anchor="middle" dominant-baseline="central">2-D fringe pattern</text>
+      <text class="ts" x="720" y="480" text-anchor="middle" dominant-baseline="central">repeat for every point (x,y)</text>
+      <text class="ts" x="720" y="496" text-anchor="middle" dominant-baseline="central">→ interference heat map</text>
+    </g>
+
+    <!-- converge to result -->
+    <line x1="140" y1="506" x2="140" y2="574" class="at"/>
+    <line x1="430" y1="506" x2="430" y2="574" class="ag"/>
+    <line x1="720" y1="506" x2="720" y2="574" class="ac"/>
+
+    <!-- ROW 6: fringe result -->
+    <g class="ng" id="n-fringe" onclick="showNode('fringe')">
+      <rect x="160" y="574" width="540" height="68" rx="8" stroke-width="0.5" class="n-purple"/>
+      <text class="tb" x="430" y="596" text-anchor="middle" dominant-baseline="central">Fringe pattern — trademark of all waves</text>
+      <text class="ts" x="430" y="616" text-anchor="middle" dominant-baseline="central">alternating bands of constructive and destructive interference</text>
+      <text class="ts" x="430" y="632" text-anchor="middle" dominant-baseline="central">spacing depends only on λ — not on amplitude or distance</text>
+    </g>
+
+    <line x1="310" y1="642" x2="220" y2="700" class="ag"/>
+    <line x1="550" y1="642" x2="640" y2="700" class="ag"/>
+
+    <!-- ROW 7 left: wavelength dependence -->
+    <g class="ng" id="n-lam" onclick="showNode('lam')">
+      <rect x="40" y="700" width="300" height="60" rx="8" stroke-width="0.5" class="n-amber"/>
+      <text class="tb" x="190" y="722" text-anchor="middle" dominant-baseline="central">Fringe spacing ∝ λ</text>
+      <text class="ts" x="190" y="742" text-anchor="middle" dominant-baseline="central">larger λ → wider fringes (and vice versa)</text>
+    </g>
+
+    <!-- ROW 7 right: source separation -->
+    <g class="ng" id="n-sep" onclick="showNode('sep')">
+      <rect x="520" y="700" width="300" height="60" rx="8" stroke-width="0.5" class="n-amber"/>
+      <text class="tb" x="670" y="722" text-anchor="middle" dominant-baseline="central">Fringe spacing ∝ 1/d</text>
+      <text class="ts" x="670" y="742" text-anchor="middle" dominant-baseline="central">closer sources → wider fringes</text>
+    </g>
+
+    <text font-family="'DM Sans',sans-serif" font-size="11" fill="var(--text-3)" x="430" y="785" text-anchor="middle">Click any node to expand details and a quiz question below</text>
+  </svg>
+
+  <div id="detailPanel"></div>
+
+  <div class="section-label">2-D interference explorer</div>
+
+  <div class="explorer-card">
+    <div class="explorer-header">
+      <span class="explorer-title">Two-source interference pattern</span>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="mSound" onclick="setPreset('sound')">Sound sources</button>
+        <button class="mode-btn" id="mLight" onclick="setPreset('light')">Light (small λ)</button>
+        <button class="mode-btn" id="mFree"  onclick="setPreset('free')">Free play</button>
+      </div>
+    </div>
+    <canvas id="cvFringe"></canvas>
+    <canvas id="cvPattern"></canvas>
+    <div class="explorer-controls">
+      <div class="ctrl-row">
+        <div class="ctrl-label"><span class="ctrl-name">Wavelength λ (m)</span><span class="ctrl-val" id="vLam">0.69</span></div>
+        <input type="range" id="sLam" min="2" max="98" value="20" step="1">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-label"><span class="ctrl-name">Source separation d (m)</span><span class="ctrl-val" id="vSep">2.00</span></div>
+        <input type="range" id="sSep" min="5" max="95" value="30" step="1">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-label"><span class="ctrl-name">A₁ / A₂ ratio</span><span class="ctrl-val" id="vRat">1.00</span></div>
+        <input type="range" id="sRat" min="10" max="100" value="100" step="1">
+      </div>
+    </div>
+    <div class="readouts">
+      <div class="readout"><div class="readout-label">λ (wavelength)</div><div class="readout-val" id="rLam">0.69 m</div></div>
+      <div class="readout"><div class="readout-label">Aₘₐₓ</div><div class="readout-val" id="rAmax">2.00</div></div>
+      <div class="readout"><div class="readout-label">Aₘᵢₙ</div><div class="readout-val" id="rAmin">0.00</div></div>
+      <div class="readout"><div class="readout-label">1st destruct. Δr</div><div class="readout-val" id="rDes">0.34 m</div></div>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="quiz-header">
+      <span class="quiz-tag">Chapter knowledge check</span>
+      <span class="quiz-type-tag">multiple choice</span>
+    </div>
+    <div class="quiz-body">
+      <p class="quiz-q">Two coherent sources emit waves of wavelength λ = 2 m and are placed 4 m apart. An observer is equidistant from both sources (Δr = 0). Moving along the observation line, at what path difference Δr does the first destructive minimum occur?</p>
+      <div class="quiz-opts">
+        <button class="quiz-opt" onclick="chAnswer(this,false)">Δr = 2 m  (one full wavelength)</button>
+        <button class="quiz-opt" onclick="chAnswer(this,true)">Δr = 1 m  (half wavelength)</button>
+        <button class="quiz-opt" onclick="chAnswer(this,false)">Δr = 0.5 m  (quarter wavelength)</button>
+        <button class="quiz-opt" onclick="chAnswer(this,false)">Δr = 4 m  (source separation)</button>
+      </div>
+      <div class="quiz-feedback" id="quizFb">
+        <strong>Δr = λ/2 = 1 m.</strong> The first destructive minimum occurs when Δr = (m + ½)λ with m = 0, giving Δr = λ/2 = 1 m. At this path difference, one wave is exactly half a cycle ahead of the other — they are perfectly out of phase (Δφ = π) and cancel. The source separation of 4 m is irrelevant to the condition for destructive interference.
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <a class="nav-link" href="ch2_3_dispersive.html">← Ch 2-3 Dispersive media</a>
+  <a class="nav-link" href="#">Ch 2-6 Real physics →</a>
+</footer>
+
+<script>
+/* ── Node data ── */
+const NODES = {
+  coh:{
+    title:"Two coherent sources", color:"purple",
+    explain:"Two sources are <strong>coherent</strong> when they share the same frequency ω and have a fixed phase relationship. If the phases drifted randomly relative to each other, any interference pattern would average away — you need a stable phase difference to get stable fringes. In practice, coherence is achieved with a single source split in two (Young's slits), or with laser beams derived from the same cavity.",
+    formula:"coherent pair:\n  ω₁ = ω₂ = ω  (same frequency)\n  φ₁ − φ₂ = const  (fixed phase offset)\n\nincoherent: φ₁ − φ₂ varies randomly\n→ no stable fringe pattern",
+    why:"Why this matters: coherence is the prerequisite for interference. All interference experiments — Young's slits, Michelson interferometer, holography — rely on coherent sources.",
+    quiz:{type:"tf",
+      q:"True or false: two independent light bulbs of the same colour can produce a stable interference pattern on a screen.",
+      correct:false,
+      fb:"<strong>False.</strong> Independent light bulbs emit light from billions of independent atomic transitions, each with a random phase. The phase difference between the two bulbs fluctuates randomly on timescales of ~10⁻⁸ s — far faster than any detector can follow. The interference pattern averages out to uniform illumination. Only a coherent source (laser, or a single source split in two) maintains a fixed phase relationship."
+    }
+  },
+  path:{
+    title:"Path length difference Δr", color:"gray",
+    explain:"When two sources S₁ and S₂ are separated, the distances r₁ and r₂ from each source to an observer point P are generally different. The <strong>path length difference</strong> Δr = r₂ − r₁ determines how many extra wavelengths wave 2 travels compared to wave 1. This extra travel accumulates phase — and it is this phase difference that drives interference.",
+    formula:"Δr = r₂ − r₁\n\nr₁ = distance from S₁ to P\nr₂ = distance from S₂ to P\n\nΔr = 0 along the perpendicular bisector\nΔr → ±d/2  as P moves to the side",
+    why:"Why this matters: Δr is the geometric quantity that links the physical layout (source positions, observer position) to the wave physics (phase difference). Everything about the fringe pattern follows from Δr(x,y).",
+    quiz:{type:"mc",
+      q:"Sources S₁ = (−1, 0) and S₂ = (+1, 0). Observer at P = (0, 3). What is Δr = r₂ − r₁?",
+      opts:["Δr = 0 m","Δr = 1 m","Δr = 2 m","Δr = 3 m"],
+      correct:0,
+      fb:"<strong>Δr = 0.</strong> r₁ = √((0−(−1))² + 9) = √10. r₂ = √((0−1)² + 9) = √10. By symmetry, any point on the perpendicular bisector of S₁S₂ is equidistant from both sources — so Δr = 0 and the observer sees constructive interference (m=0 fringe)."
+    }
+  },
+  phase:{
+    title:"Phase difference Δφ", color:"purple",
+    explain:"Each wavelength of extra path accumulates 2π radians of phase. So a path difference Δr corresponds to a phase difference <strong>Δφ = (2π/λ)·Δr</strong>. This is the fundamental conversion between geometry (meters) and wave physics (radians). If the sources also have an intrinsic phase offset φ₂ − φ₁, that adds directly: Δφ_total = (2π/λ)Δr + (φ₂ − φ₁).",
+    formula:"Δφ = (2π/λ) · Δr\n\nif sources have initial phases φ₁, φ₂:\n  Δφ_total = (2π/λ)Δr + (φ₂ − φ₁)\n\nunit check:\n  [rad/m] · [m] = rad  ✓",
+    why:"Why this matters: this formula is the bridge between the geometric setup and the interference result. All fringe position calculations start here.",
+    quiz:{type:"fill",
+      q:"λ = 0.5 m. Path difference Δr = 0.75 m. What is Δφ in radians? (Give a numeric answer, e.g. 3.14 for π)",
+      answer:"9.42",
+      fb:"<strong>Δφ = (2π/0.5) × 0.75 = 4π × 0.75 = 3π ≈ 9.42 rad.</strong> Since 3π = (2×1+1)π, this satisfies the destructive condition Δφ = (2m+1)π with m=1 — the observer sees the second destructive minimum."
+    }
+  },
+  con:{
+    title:"Constructive interference", color:"teal",
+    explain:"Constructive interference occurs when the two waves arrive <strong>in phase</strong> — crest meets crest. This requires the phase difference to be a multiple of 2π, which corresponds to a path difference that is an integer multiple of the wavelength. The resulting amplitude is the sum of the individual amplitudes — the maximum possible.",
+    formula:"condition:\n  Δφ = 2mπ     m = 0, ±1, ±2, …\n  Δr  = mλ\n\nresult:\n  A_total = A₁ + A₂  (maximum)\n\nm = 0: central maximum (Δr = 0)\nm = ±1: first-order maxima\nm = ±2: second-order maxima …",
+    why:"Why this matters: the integer m labels each bright fringe. In optics experiments, measuring the positions of these fringes and knowing the geometry lets you determine λ precisely — this is how wavelengths of light were first measured.",
+    quiz:{type:"mc",
+      q:"Two sources emit λ = 2 m waves. At what path differences Δr do the first three constructive maxima occur (m = 0, 1, 2)?",
+      opts:["Δr = 0, 1, 2 m","Δr = 0, 2, 4 m","Δr = 1, 2, 3 m","Δr = 0.5, 1.5, 2.5 m"],
+      correct:1,
+      fb:"<strong>Δr = 0, 2, 4 m.</strong> Constructive condition: Δr = mλ = m × 2. For m=0: Δr=0. For m=1: Δr=2 m. For m=2: Δr=4 m. These are the positions of bright fringes. The destructive minima fall in between at Δr = 1, 3, 5 m (half-integer multiples of λ)."
+    }
+  },
+  des:{
+    title:"Destructive interference", color:"coral",
+    explain:"Destructive interference occurs when the two waves arrive <strong>exactly out of phase</strong> — crest meets trough. This requires the phase difference to be an odd multiple of π, which means the path difference is a half-integer multiple of the wavelength. If A₁ = A₂, the waves cancel completely (zero amplitude). If A₁ ≠ A₂, the minimum amplitude is |A₁ − A₂| > 0.",
+    formula:"condition:\n  Δφ = (2m+1)π   m = 0, ±1, ±2, …\n  Δr  = (m + ½)λ\n\nresult:\n  A_total = |A₁ − A₂|  (minimum)\n\nif A₁ = A₂:  A_total = 0 (dark fringe)\nif A₁ ≠ A₂:  A_total > 0 (dim fringe)",
+    why:"Why this matters: destructive interference is the mechanism behind noise-cancelling headphones, anti-reflection coatings on lenses, and dark fringes in diffraction patterns. The 'missing' energy is redistributed into the bright fringes.",
+    quiz:{type:"mc",
+      q:"A₁ = 3 and A₂ = 2 (arbitrary units). At destructive interference, what is the amplitude at the dark fringe?",
+      opts:["0","1","5","2.5"],
+      correct:1,
+      fb:"<strong>Aₘᵢₙ = |A₁ − A₂| = |3 − 2| = 1.</strong> When the amplitudes are unequal, the waves cannot cancel completely. The minimum amplitude is the absolute difference. Only when A₁ = A₂ exactly does destructive interference produce a true zero. This is why real dark fringes are never perfectly black unless the sources are identical."
+    }
+  },
+  amp:{
+    title:"Amplitude limits", color:"gray",
+    explain:"At any point in space, the amplitude of the superposed wave lies between two bounds. The <strong>maximum</strong> A₁ + A₂ occurs at constructive interference (Δφ = 2mπ). The <strong>minimum</strong> |A₁ − A₂| occurs at destructive interference (Δφ = (2m+1)π). These bounds are universal — they hold regardless of the geometry, the frequency, or the distance from the sources.",
+    formula:"Aₘₐₓ = A₁ + A₂   (constructive)\nAₘᵢₙ = |A₁ − A₂|  (destructive)\n\nNote: intensity I ∝ A²\n  Iₘₐₓ = (A₁ + A₂)²\n  Iₘᵢₙ = (A₁ − A₂)²\n\nfor A₁ = A₂ = A:\n  Iₘₐₓ = 4A²,  Iₘᵢₙ = 0",
+    why:"Why this matters: these bounds let you immediately characterise the contrast of an interference pattern without computing any geometry. High contrast (Iₘₐₓ/Iₘᵢₙ large) requires A₁ ≈ A₂.",
+    quiz:{type:"mc",
+      q:"Two waves with A₁ = 4 and A₂ = 4 interfere. What is the ratio Iₘₐₓ/Iₘᵢₙ?",
+      opts:["2","4","Infinity (Iₘᵢₙ = 0)","1"],
+      correct:2,
+      fb:"<strong>Iₘₐₓ/Iₘᵢₙ → ∞.</strong> When A₁ = A₂, destructive interference gives Aₘᵢₙ = 0, so Iₘᵢₙ = 0. The ratio is infinite — the dark fringes are completely dark. Iₘₐₓ = (4+4)² = 64. This maximum contrast is why equal-amplitude sources give the sharpest fringe patterns."
+    }
+  },
+  phasor:{
+    title:"Phasor addition", color:"teal",
+    explain:"Using the Euler identity, each wave at point P is represented as a phasor: Ũ = A·e^{iΦ} where Φ = kr + φ₀ is the total phase. Adding two phasors is just complex number addition — convert to rectangular (real + imaginary parts), add, then take the modulus for amplitude and argument for phase. This method handles any number of sources and any phase configuration without trigonometric identities.",
+    formula:"phasor of wave j at point P:\n  Ũⱼ = Aⱼ · e^{iΦⱼ}\n  Φⱼ = krⱼ + φⱼ\n\ntotal:\n  Ũ = Ũ₁ + Ũ₂\n  A₀ = |Ũ| = √(Re²+Im²)\n  ψ  = arg(Ũ) = atan2(Im,Re)",
+    why:"Why this matters: the phasor method scales to any number of sources (N-slit diffraction, antenna arrays, phased arrays) without algebraic explosion. It is the standard tool in optics, acoustics, and electromagnetics.",
+    quiz:{type:"mc",
+      q:"Ũ₁ = 3e^{i·0.5} and Ũ₂ = 2e^{i·1.2}. In rectangular form: Ũ₁ ≈ 2.63 + 1.44i and Ũ₂ ≈ 0.72 + 1.86i. What is the amplitude of Ũ = Ũ₁ + Ũ₂?",
+      opts:["A₀ ≈ 3.35","A₀ ≈ 4.71","A₀ ≈ 5.00","A₀ ≈ 3.71"],
+      correct:1,
+      fb:"<strong>A₀ ≈ 4.71.</strong> Ũ = (2.63+0.72) + (1.44+1.86)i = 3.35 + 3.30i. |Ũ| = √(3.35² + 3.30²) = √(11.22 + 10.89) = √22.11 ≈ 4.71. This matches the result in Experiment 2-4.3 from your manuscript."
+    }
+  },
+  obs:{
+    title:"Observer at point P — total phase", color:"gray",
+    explain:"When source j has an intrinsic phase φⱼ and the observer at P is a distance rⱼ away, the total phase of wave j at P is Φⱼ = krⱼ + φⱼ. The path contribution krⱼ adds to whatever phase the source started with. This is essential when sources are not in phase — for example, when one source fires later than the other (adding ωτ to its phase) or when sources are driven with a deliberate phase offset.",
+    formula:"Φⱼ = k·rⱼ + φⱼ\n\npath term:   k·rⱼ = (2π/λ)·rⱼ\nsource term: φⱼ  (initial phase of source j)\n\nΔΦ = Φ₂ − Φ₁\n   = k(r₂−r₁) + (φ₂−φ₁)\n   = kΔr + Δφ₀",
+    why:"Why this matters: most textbooks assume φ₁ = φ₂ = 0. In real experiments — phased arrays, delayed sources — the source phase matters just as much as the path phase. The phasor formulation handles both automatically.",
+    quiz:{type:"mc",
+      q:"Source 1 has φ₁ = 0, r₁ = 1.0 m. Source 2 has φ₂ = π, r₂ = 1.0 m. λ = 2 m. What is ΔΦ and what kind of interference occurs?",
+      opts:["ΔΦ = 0, constructive","ΔΦ = π, destructive","ΔΦ = 2π, constructive","ΔΦ = π/2, partial"],
+      correct:1,
+      fb:"<strong>ΔΦ = π, destructive.</strong> k = 2π/λ = π rad/m. Path term: k(r₂−r₁) = π × 0 = 0. Source term: φ₂ − φ₁ = π. Total: ΔΦ = 0 + π = π. Since π = (2×0+1)π, this is a destructive minimum even though both observers are equidistant. The sources are intrinsically out of phase."
+    }
+  },
+  "2d":{
+    title:"2-D fringe pattern", color:"coral",
+    explain:"By computing the amplitude at every point (x,y) on a plane, using the phasor sum Ũ(x,y) = Ũ₁ + Ũ₂ with rⱼ = √((x−xⱼ)² + y²), you build a <strong>heat map</strong> of interference. Bright regions are constructive (Δr = mλ) and dark regions are destructive (Δr = (m+½)λ). The fringes form hyperbolic curves whose asymptotes point toward the two sources.",
+    formula:"for each point (x, y):\n  r₁ = √((x−x₁)²+y²)\n  r₂ = √((x−x₂)²+y²)\n  Ũ = A₁e^{ikr₁} + A₂e^{ikr₂}\n  I(x,y) = |Ũ|²\n\nfringes: hyperbolae with foci at S₁, S₂",
+    why:"Why this matters: the 2-D pattern is what you actually observe in experiments — on a screen, in a ripple tank, or with a microphone scanning across a room. Computing it analytically is the foundation of antenna array design and acoustic beamforming.",
+    quiz:{type:"tf",
+      q:"True or false: the fringes in a two-source interference pattern are straight lines perpendicular to the line joining the two sources.",
+      correct:false,
+      fb:"<strong>False.</strong> The fringes are hyperbolae — curves of constant path difference Δr = r₂ − r₁ = mλ. A hyperbola is defined as the locus of points with a constant difference in distance from two foci. Only in the far field (screen very far away) do the fringes approximate straight lines."
+    }
+  },
+  fringe:{
+    title:"The fringe pattern — trademark of waves", color:"purple",
+    explain:"The alternating bright and dark bands produced by two coherent sources are the universal signature of wave behaviour. They appear in water ripple tanks, sound interference experiments, Young's light experiment, electron diffraction, and neutron scattering. <strong>The fringe spacing and position depend only on λ — not on amplitude or distance</strong> (though amplitude does affect fringe contrast). This wavelength-dependence is what makes interference a precision measurement tool.",
+    formula:"fringe positions (far-field approximation):\n  bright: y_m ≈ mλL/d\n  dark:   y_m ≈ (m+½)λL/d\n\nwhere L = screen distance, d = source separation\n\nfringe spacing: Δy = λL/d",
+    why:"Why this matters: measuring Δy and knowing L and d gives λ directly. This is how Young measured the wavelength of light in 1801 — one of the first precise measurements of a wave property of light.",
+    quiz:{type:"mc",
+      q:"Two sources separated by d = 0.5 mm emit light of λ = 600 nm. A screen is L = 2 m away. What is the fringe spacing Δy?",
+      opts:["Δy = 1.2 mm","Δy = 2.4 mm","Δy = 0.6 mm","Δy = 4.8 mm"],
+      correct:1,
+      fb:"<strong>Δy = λL/d = (600×10⁻⁹ × 2) / (0.5×10⁻³) = 1.2×10⁻³ / 0.5×10⁻³ = 2.4×10⁻³ m = 2.4 mm.</strong> This is a typical Young's double-slit result. Note how tiny the wavelength (600 nm) produces millimetre-scale fringes when L is large — the geometry amplifies the wave effect."
+    }
+  },
+  lam:{
+    title:"Fringe spacing scales with λ", color:"amber",
+    explain:"From the far-field formula Δy = λL/d, fringe spacing is directly proportional to wavelength. <strong>Longer wavelength → wider fringes; shorter wavelength → narrower fringes.</strong> This is why radio waves (λ ~ metres) produce very coarse interference patterns from antenna arrays, while visible light (λ ~ 500 nm) produces fine fringes that require a magnifier to resolve.",
+    formula:"Δy = λL/d\n\nΔy ∝ λ  (for fixed L, d)\n\nexamples:\n  radio   λ=0.3m → Δy large\n  sound   λ=0.7m → Δy large\n  light   λ=500nm → Δy tiny\n  X-ray   λ=0.1nm → Δy atomic scale",
+    why:"Why this matters: the λ-dependence means interference measurements are intrinsically wavelength-selective. A spectrometer uses this to separate wavelengths spatially — the basis of all spectroscopy.",
+    quiz:{type:"mc",
+      q:"You double the wavelength in an interference experiment (keeping L and d fixed). What happens to the fringe spacing?",
+      opts:["It halves","It stays the same","It doubles","It quadruples"],
+      correct:2,
+      fb:"<strong>It doubles.</strong> Δy = λL/d. Doubling λ doubles Δy — fringe spacing is directly proportional to wavelength. This is the key relationship: longer wavelengths produce more widely spaced fringes."
+    }
+  },
+  sep:{
+    title:"Fringe spacing scales inversely with source separation d", color:"amber",
+    explain:"From Δy = λL/d, fringe spacing is inversely proportional to source separation d. <strong>Closer sources → wider fringes; further apart sources → narrower fringes.</strong> This inverse relationship is fundamental: a very wide aperture (large d) produces very fine fringes, while a narrow aperture produces coarse fringes. This is the spatial analogue of the Heisenberg uncertainty principle.",
+    formula:"Δy = λL/d\n\nΔy ∝ 1/d  (for fixed λ, L)\n\nclose sources (small d)  → wide fringes\nfar sources  (large d)  → narrow fringes\n\nphysical limit: d > λ required\nfor fringes to exist at all",
+    why:"Why this matters: the d-dependence is exploited in astronomical interferometry. Very large baseline arrays (d ~ km) produce extremely fine fringe patterns, resolving angular features far beyond any single telescope.",
+    quiz:{type:"tf",
+      q:"True or false: moving the two sources further apart (increasing d) makes the fringe pattern easier to see because the fringes are more spread out.",
+      correct:false,
+      fb:"<strong>False.</strong> Increasing d decreases Δy = λL/d — the fringes get closer together and harder to resolve, not easier. To see widely spaced fringes, you want a small source separation. This is counterintuitive: bringing the sources closer together paradoxically makes the pattern easier to observe."
+    }
+  }
+};
+
+const colorMap  = {gray:'var(--gray-50)',purple:'var(--purple-50)',teal:'var(--teal-50)',coral:'var(--coral-50)',amber:'var(--amber-50)'};
+const borderMap = {gray:'var(--gray-400)',purple:'var(--purple-400)',teal:'var(--teal-600)',coral:'var(--coral-600)',amber:'var(--amber-600)'};
+let currentNode = null;
+
+function quizHTML(q, id){
+  if(q.type==='mc') return `<div class="dq-opts">${q.opts.map((o,i)=>`<button class="dq-opt" onclick="dqMC('${id}',this,${i===q.correct})">${o}</button>`).join('')}</div>`;
+  if(q.type==='tf') return `<div class="dq-tf"><button class="dq-tf-btn" onclick="dqTF('${id}',this,${q.correct===true})">True</button><button class="dq-tf-btn" onclick="dqTF('${id}',this,${q.correct===false})">False</button></div>`;
+  if(q.type==='fill') return `<input class="dq-fill" id="fill_${id}" placeholder="Type your answer…" onkeydown="if(event.key==='Enter')dqFill('${id}','${q.answer.replace(/'/g,"\\'")}')"><button class="dq-submit" onclick="dqFill('${id}','${q.answer.replace(/'/g,"\\'")}')">Check ↵</button>`;
+}
+function typeLabel(t){return {mc:'multiple choice',tf:'true / false',fill:'fill in the blank'}[t]||t;}
+
+function showNode(id){
+  const data=NODES[id]; if(!data)return;
+  document.querySelectorAll('.ng').forEach(g=>g.classList.remove('sel'));
+  if(currentNode===id){currentNode=null;const p=document.getElementById('detailPanel');p.innerHTML='';p.className='';return;}
+  currentNode=id;
+  document.getElementById('n-'+id).classList.add('sel');
+  const bc=borderMap[data.color], bg=colorMap[data.color], q=data.quiz;
+  const panel=document.getElementById('detailPanel');
+  panel.innerHTML=`<div class="dp-wrap" style="border-color:${bc}">
+    <div class="dp-head" style="background:${bg}"><span class="dp-title">${data.title}</span><button class="dp-close" onclick="closePanel()">close ×</button></div>
+    <div class="dp-body"><div class="dp-explain">${data.explain}</div><div class="dp-right"><div class="dp-formula" style="background:${bg};border-color:${bc}">${data.formula}</div><div class="dp-why" style="border-left-color:${bc}">${data.why}</div></div></div>
+    <div class="dp-quiz"><div class="dq-label"><span>Quick check</span><span class="dq-type">${typeLabel(q.type)}</span></div><p class="dq-q">${q.q}</p><div id="dqBody_${id}">${quizHTML(q,id)}</div><div class="dq-feedback" id="dqFb_${id}"></div><button class="dq-retry" id="dqRetry_${id}" style="display:none" onclick="retryQuiz('${id}')">↺ try again</button></div>
+  </div>`;
+  panel.className='open';
+  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function closePanel(){currentNode=null;document.querySelectorAll('.ng').forEach(g=>g.classList.remove('sel'));const p=document.getElementById('detailPanel');p.innerHTML='';p.className='';}
+function showFb(id,correct){const fb=document.getElementById('dqFb_'+id),retry=document.getElementById('dqRetry_'+id);fb.innerHTML=(correct?'<strong>Correct!</strong> ':'<strong>Not quite.</strong> ')+NODES[id].quiz.fb;fb.className='dq-feedback show';if(!correct)retry.style.display='block';}
+function dqMC(id,btn,correct){const body=document.getElementById('dqBody_'+id);body.querySelectorAll('.dq-opt').forEach((b,i)=>{b.disabled=true;if(b===btn)b.classList.add(correct?'correct':'wrong');else if(!correct&&i===NODES[id].quiz.correct)b.classList.add('correct');});showFb(id,correct);}
+function dqTF(id,btn,correct){const body=document.getElementById('dqBody_'+id);body.querySelectorAll('.dq-tf-btn').forEach(b=>{b.disabled=true;});btn.classList.add(correct?'correct':'wrong');if(!correct){const o=[...body.querySelectorAll('.dq-tf-btn')].find(b=>b!==btn);if(o)o.classList.add('correct');}showFb(id,correct);}
+function dqFill(id,answer){const input=document.getElementById('fill_'+id);if(!input||input.disabled)return;const val=input.value.trim().toLowerCase().replace(/\s/g,'');const correct=val===answer.toLowerCase().replace(/\s/g,'');input.disabled=true;input.style.borderColor=correct?'var(--teal-600)':'var(--coral-600)';const sub=input.nextElementSibling;if(sub)sub.disabled=true;showFb(id,correct);}
+function retryQuiz(id){document.getElementById('dqBody_'+id).innerHTML=quizHTML(NODES[id].quiz,id);const fb=document.getElementById('dqFb_'+id);fb.className='dq-feedback';fb.innerHTML='';document.getElementById('dqRetry_'+id).style.display='none';}
+
+/* ── 2-D interference explorer ── */
+let lam=0.686, sep=2.0, rat=1.0;
+let offscreenCanvas=null, offscreenCtx=null;
+let needsRedraw=true;
+
+const cvF=document.getElementById('cvFringe');
+const cvP=document.getElementById('cvPattern');
+const ctxF=cvF.getContext('2d');
+const ctxP=cvP.getContext('2d');
+
+function setPreset(m){
+  ['Sound','Light','Free'].forEach(n=>document.getElementById('m'+n).classList.toggle('active',n.toLowerCase()===m));
+  if(m==='sound'){lam=0.686;sep=2.0;rat=1.0;}
+  else if(m==='light'){lam=0.12;sep=3.0;rat=1.0;}
+  syncSliders(); updateReadouts(); needsRedraw=true;
+}
+
+function syncSliders(){
+  function setS(sid,vid,val,min,max,dec){
+    const s=document.getElementById(sid);
+    const frac=(val-min)/(max-min);
+    s.value=Math.round(frac*(+s.max-+s.min)+(+s.min));
+    document.getElementById(vid).textContent=val.toFixed(dec);
+  }
+  setS('sLam','vLam',lam,0.05,2.0,2);
+  setS('sSep','vSep',sep,0.5,8.0,2);
+  setS('sRat','vRat',rat,0.1,1.0,2);
+}
+
+function wireS(sid,vid,min,max,dec,setter){
+  document.getElementById(sid).addEventListener('input',function(){
+    const frac=(this.value-+this.min)/(+this.max-+this.min);
+    const v=min+(max-min)*frac;
+    document.getElementById(vid).textContent=v.toFixed(dec);
+    setter(v); updateReadouts(); needsRedraw=true;
+    ['Sound','Light','Free'].forEach(n=>document.getElementById('m'+n).classList.remove('active'));
+    document.getElementById('mFree').classList.add('active');
+  });
+}
+wireS('sLam','vLam',0.05,2.0,2,v=>lam=v);
+wireS('sSep','vSep',0.5,8.0,2,v=>sep=v);
+wireS('sRat','vRat',0.1,1.0,2,v=>rat=v);
+
+function updateReadouts(){
+  const A1=1.0, A2=rat;
+  document.getElementById('rLam').textContent=lam.toFixed(3)+' m';
+  document.getElementById('rAmax').textContent=(A1+A2).toFixed(2);
+  document.getElementById('rAmin').textContent=Math.abs(A1-A2).toFixed(2);
+  document.getElementById('rDes').textContent=(lam/2).toFixed(3)+' m';
+}
+
+function buildOffscreen(){
+  const dpr=window.devicePixelRatio||1;
+  const W=Math.floor(cvF.offsetWidth*dpr);
+  const H=Math.floor(cvF.offsetHeight*dpr);
+  if(!W||!H)return;
+
+  offscreenCanvas=document.createElement('canvas');
+  offscreenCanvas.width=W; offscreenCanvas.height=H;
+  offscreenCtx=offscreenCanvas.getContext('2d');
+
+  const img=offscreenCtx.createImageData(W,H);
+  const data=img.data;
+
+  // physical space: x in [-6,6], y in [0,10]
+  const xRange=12, yRange=10;
+  const xOff=-6;
+
+  const s1x=-sep/2, s1y=0;
+  const s2x= sep/2, s2y=0;
+  const A1=1.0, A2=rat;
+  const k=2*Math.PI/lam;
+  const dark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+
+  for(let py=0;py<H;py++){
+    const phy=yRange*(1-py/H); // y=0 at bottom
+    for(let px=0;px<W;px++){
+      const phx=xOff+xRange*px/W;
+      const r1=Math.sqrt((phx-s1x)**2+(phy-s1y)**2);
+      const r2=Math.sqrt((phx-s2x)**2+(phy-s2y)**2);
+      // amplitude via phasor
+      const re=A1*Math.cos(k*r1)+A2*Math.cos(k*r2);
+      const im=A1*Math.sin(k*r1)+A2*Math.sin(k*r2);
+      const amp=Math.sqrt(re*re+im*im);
+      const maxA=A1+A2;
+      const norm=amp/maxA; // 0..1
+
+      const idx=(py*W+px)*4;
+      if(dark){
+        // bright on dark
+        const v=Math.round(norm*255);
+        data[idx]=v; data[idx+1]=v; data[idx+2]=Math.round(norm*200+55);
+      } else {
+        // bright on white
+        const v=Math.round((1-norm)*255);
+        data[idx]=v; data[idx+1]=v; data[idx+2]=255-Math.round(norm*60);
+      }
+      data[idx+3]=255;
+    }
+  }
+  offscreenCtx.putImageData(img,0,0);
+
+  // draw sources
+  const toCanvasX=phx=>Math.round((phx-xOff)/xRange*W);
+  const toCanvasY=phy=>Math.round((1-phy/yRange)*H);
+  [[s1x,s1y],[s2x,s2y]].forEach(([x,y])=>{
+    offscreenCtx.fillStyle='#D85A30';
+    offscreenCtx.beginPath();
+    offscreenCtx.arc(toCanvasX(x),toCanvasY(y),5*dpr,0,Math.PI*2);
+    offscreenCtx.fill();
+  });
+
+  // label
+  offscreenCtx.fillStyle=dark?'rgba(255,255,255,0.35)':'rgba(0,0,0,0.35)';
+  offscreenCtx.font=`${10*dpr}px 'DM Sans',sans-serif`;
+  offscreenCtx.textAlign='left';
+  offscreenCtx.fillText('S₁',toCanvasX(s1x)+8*dpr,toCanvasY(s1y)-4*dpr);
+  offscreenCtx.fillText('S₂',toCanvasX(s2x)+8*dpr,toCanvasY(s2y)-4*dpr);
+}
+
+function drawFringe(){
+  const dpr=window.devicePixelRatio||1;
+  cvF.width=cvF.offsetWidth*dpr; cvF.height=cvF.offsetHeight*dpr;
+  if(needsRedraw){buildOffscreen();needsRedraw=false;}
+  if(offscreenCanvas) ctxF.drawImage(offscreenCanvas,0,0);
+}
+
+function drawPattern(){
+  // horizontal cross-section at y = 5 m
+  const dpr=window.devicePixelRatio||1;
+  cvP.width=cvP.offsetWidth*dpr; cvP.height=cvP.offsetHeight*dpr;
+  const W=cvP.width, H=cvP.height;
+  const dark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  ctxP.clearRect(0,0,W,H);
+
+  const xRange=12, xOff=-6;
+  const midY=H/2, scaleY=H*0.38;
+  const k=2*Math.PI/lam;
+  const s1x=-sep/2, s2x=sep/2;
+  const A1=1.0, A2=rat;
+  const yFixed=5.0;
+
+  // axis
+  ctxP.strokeStyle=dark?'rgba(255,255,255,0.10)':'rgba(0,0,0,0.10)';
+  ctxP.lineWidth=0.5;
+  ctxP.beginPath();ctxP.moveTo(0,midY);ctxP.lineTo(W,midY);ctxP.stroke();
+
+  ctxP.strokeStyle=dark?'#AFA9EC':'#534AB7'; ctxP.lineWidth=1.5*dpr;
+  ctxP.beginPath();
+  for(let px=0;px<=W;px++){
+    const phx=xOff+xRange*px/W;
+    const r1=Math.sqrt((phx-s1x)**2+yFixed**2);
+    const r2=Math.sqrt((phx-s2x)**2+yFixed**2);
+    const re=A1*Math.cos(k*r1)+A2*Math.cos(k*r2);
+    const im=A1*Math.sin(k*r1)+A2*Math.sin(k*r2);
+    const amp=Math.sqrt(re*re+im*im)/(A1+A2);
+    const py=midY-amp*scaleY;
+    px===0?ctxP.moveTo(px,py):ctxP.lineTo(px,py);
+  }
+  ctxP.stroke();
+
+  ctxP.fillStyle=dark?'rgba(255,255,255,0.28)':'rgba(0,0,0,0.28)';
+  ctxP.font=`${10*dpr}px 'DM Sans',sans-serif`;
+  ctxP.textAlign='left';
+  ctxP.fillText('Amplitude cross-section at y = 5 m',8*dpr,14*dpr);
+}
+
+let lastW=0;
+function loop(){
+  const W=cvF.offsetWidth;
+  if(W!==lastW){lastW=W;needsRedraw=true;}
+  drawFringe();
+  drawPattern();
+  requestAnimationFrame(loop);
+}
+
+syncSliders(); updateReadouts(); loop();
+
+let chAnswered=false;
+function chAnswer(btn,correct){
+  if(chAnswered)return; chAnswered=true;
+  document.querySelectorAll('.quiz-opt').forEach(b=>{b.disabled=true;if(b.getAttribute('onclick').includes('true'))b.classList.add('correct');});
+  if(!correct)btn.classList.add('wrong');
+  document.getElementById('quizFb').style.display='block';
+}
+</script>
+</body>
+</html>

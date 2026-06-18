@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Huygens N-slit explorer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap');
+  :root{
+    --purple-400:#7F77DD;--purple-600:#534AB7;--purple-50:#EEEDFE;--purple-800:#3C3489;
+    --teal-50:#E1F5EE;--teal-600:#0F6E56;
+    --gray-50:#F1EFE8;--gray-400:#888780;--gray-600:#5F5E5A;
+    --amber-600:#B45309;
+    --bg:#FAFAF8;--surface:#FFFFFF;
+    --border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);
+    --text:#1a1a18;--text-2:#5F5E5A;--text-3:#888780;
+    --radius:10px;--radius-lg:16px;
+    --mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;
+  }
+  @media(prefers-color-scheme:dark){:root{
+    --purple-400:#7F77DD;--purple-600:#AFA9EC;--purple-50:#26215C;--purple-800:#CECBF6;
+    --teal-50:#04342C;--teal-600:#5DCAA5;
+    --gray-50:#2C2C2A;--gray-400:#888780;--gray-600:#B4B2A9;
+    --amber-600:#F59E0B;
+    --bg:#141412;--surface:#1e1e1b;
+    --border:rgba(255,255,255,0.09);--border-strong:rgba(255,255,255,0.16);
+    --text:#EEECEA;--text-2:#B4B2A9;--text-3:#888780;
+  }}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh}
+  .page-header{padding:2.5rem 2rem 1.5rem;border-bottom:0.5px solid var(--border);max-width:960px;margin:0 auto}
+  .chapter-label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--purple-400);margin-bottom:.4rem;text-transform:uppercase}
+  h1{font-size:clamp(1.4rem,3.5vw,2rem);font-weight:500;line-height:1.25;margin-bottom:.5rem}
+  .subtitle{font-size:14px;color:var(--text-2);line-height:1.6;max-width:620px}
+  .main{max-width:960px;margin:0 auto;padding:1.5rem 2rem 3rem}
+
+  .card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:1.5rem}
+  .card-head{padding:.75rem 1.25rem;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .card-title{font-size:13px;font-weight:500;color:var(--text)}
+  .card-sub{font-size:11px;color:var(--text-3);font-family:var(--mono)}
+
+  .presets{display:flex;gap:6px;flex-wrap:wrap}
+  .preset-btn{border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:5px 14px;cursor:pointer;font-size:12px;font-family:var(--mono);color:var(--text-2);background:transparent;transition:all .12s}
+  .preset-btn:hover{background:var(--gray-50)}
+  .preset-btn.active{border-color:var(--purple-400);background:var(--purple-50);color:var(--purple-800)}
+
+  canvas{display:block;width:100%}
+  #cvHuygens{height:360px;background:var(--bg);border-bottom:0.5px solid var(--border)}
+  #cvIntensity{height:160px;background:var(--bg);border-top:0.5px solid var(--border)}
+
+  .controls{padding:1rem 1.25rem;display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;border-top:0.5px solid var(--border)}
+  @media(max-width:600px){.controls{grid-template-columns:1fr 1fr}}
+  .ctrl-row{display:flex;flex-direction:column;gap:5px}
+  .ctrl-label{display:flex;justify-content:space-between;align-items:baseline}
+  .ctrl-name{font-size:12px;color:var(--text-2)}
+  .ctrl-val{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--purple-400)}
+  input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:var(--border-strong);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--purple-600);cursor:pointer;transition:transform .1s}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
+
+  .readouts{display:grid;grid-template-columns:repeat(4,1fr);border-top:0.5px solid var(--border)}
+  .readout{padding:.75rem 1rem;border-right:0.5px solid var(--border)}
+  .readout:last-child{border-right:none}
+  .readout-label{font-size:10px;color:var(--text-3);font-family:var(--mono);margin-bottom:2px}
+  .readout-val{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--text)}
+
+  .section-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin-bottom:1rem;display:flex;align-items:center;gap:10px}
+  .section-label::after{content:'';flex:1;height:0.5px;background:var(--border)}
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="chapter-label">Ch 2-7 / 2-8 — Diffraction explorer</div>
+  <h1>Huygens N-slit interference</h1>
+  <p class="subtitle">Secondary wavelets radiate from every point inside each slit. Their superposition produces both the single-slit diffraction envelope (sinβ/β)² and the multi-slit interference factor (sinNδ/sinδ)². Use the presets to see the transition from 1 to 10 slits.</p>
+</header>
+
+<main class="main">
+  <div class="section-label">Live visualisation — Huygens picture above, analytic I(θ) below</div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">N-slit diffraction</span>
+      <div class="presets">
+        <button class="preset-btn active" id="p1" onclick="setN(1)">1 slit</button>
+        <button class="preset-btn" id="p2" onclick="setN(2)">2 slits</button>
+        <button class="preset-btn" id="p5" onclick="setN(5)">5 slits</button>
+        <button class="preset-btn" id="p10" onclick="setN(10)">10 slits</button>
+      </div>
+    </div>
+
+    <canvas id="cvHuygens"></canvas>
+    <canvas id="cvIntensity"></canvas>
+
+    <div class="controls">
+      <div class="ctrl-row">
+        <div class="ctrl-label"><span class="ctrl-name">Wavelength λ (mm)</span><span class="ctrl-val" id="vLam">0.50</span></div>
+        <input type="range" id="sLam" min="1" max="99" value="25" step="1">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-label"><span class="ctrl-name">Slit width w (mm)</span><span class="ctrl-val" id="vW">1.00</span></div>
+        <input type="range" id="sW" min="1" max="99" value="20" step="1">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-label"><span class="ctrl-name">Slit separation d (mm)</span><span class="ctrl-val" id="vD">3.00</span></div>
+        <input type="range" id="sD" min="1" max="99" value="40" step="1">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-label"><span class="ctrl-name">Emitter points / slit</span><span class="ctrl-val" id="vPts">7</span></div>
+        <input type="range" id="sPts" min="1" max="15" value="7" step="2">
+      </div>
+    </div>
+
+    <div class="readouts">
+      <div class="readout"><div class="readout-label">N slits</div><div class="readout-val" id="rN">1</div></div>
+      <div class="readout"><div class="readout-label">λ / w</div><div class="readout-val" id="rRatio">0.50</div></div>
+      <div class="readout"><div class="readout-label">1st slit min</div><div class="readout-val" id="rMin">±30.0°</div></div>
+      <div class="readout"><div class="readout-label">fringe spacing Δθ</div><div class="readout-val" id="rFringe">—</div></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+const COL = {
+  bg:       dark ? '#141412' : '#FAFAF8',
+  surface:  dark ? '#1e1e1b' : '#ffffff',
+  barrier:  dark ? '#444441' : '#888780',
+  wavefront:dark ? 'rgba(127,119,221,0.18)' : 'rgba(127,119,221,0.15)',
+  wavelet:  dark ? 'rgba(93,202,165,0.55)'  : 'rgba(15,110,86,0.45)',
+  ray:      dark ? 'rgba(239,159,39,0.25)'  : 'rgba(180,83,9,0.18)',
+  screen:   dark ? '#5F5E5A' : '#B4B2A9',
+  intensity:dark ? '#7F77DD' : '#534AB7',
+  envelope: dark ? 'rgba(239,159,39,0.55)'  : 'rgba(180,83,9,0.50)',
+  source:   dark ? '#F0997B' : '#D85A30',
+  text:     dark ? '#888780' : '#888780',
+};
+
+let N=1, lam=0.5, w=1.0, d=3.0, pts=7;
+
+const cvH = document.getElementById('cvHuygens');
+const cvI = document.getElementById('cvIntensity');
+const ctxH = cvH.getContext('2d');
+const ctxI = cvI.getContext('2d');
+
+function phys(slider, min, max, dec){
+  return +(min + (max-min)*(slider.value - +slider.min)/(+slider.max - +slider.min)).toFixed(dec);
+}
+
+function readSliders(){
+  lam = phys(document.getElementById('sLam'), 0.10, 2.00, 2);
+  w   = phys(document.getElementById('sW'),   0.20, 5.00, 2);
+  d   = phys(document.getElementById('sD'),   0.50,12.00, 2);
+  pts = +document.getElementById('sPts').value;
+  document.getElementById('vLam').textContent = lam.toFixed(2);
+  document.getElementById('vW').textContent   = w.toFixed(2);
+  document.getElementById('vD').textContent   = d.toFixed(2);
+  document.getElementById('vPts').textContent = pts;
+  updateReadouts();
+}
+
+function updateReadouts(){
+  document.getElementById('rN').textContent = N;
+  document.getElementById('rRatio').textContent = (lam/w).toFixed(2);
+  const minDeg = Math.asin(Math.min(1, lam/w)) * 180/Math.PI;
+  document.getElementById('rMin').textContent = isNaN(minDeg) ? 'none' : '±'+minDeg.toFixed(1)+'°';
+  if(N>1){
+    const fringeDeg = Math.asin(Math.min(1, lam/d)) * 180/Math.PI;
+    document.getElementById('rFringe').textContent = isNaN(fringeDeg)?'—':fringeDeg.toFixed(1)+'°';
+  } else {
+    document.getElementById('rFringe').textContent = '—';
+  }
+}
+
+function setN(n){
+  N=n;
+  [1,2,5,10].forEach(v=>{
+    const b=document.getElementById('p'+v);
+    b.classList.toggle('active', v===n);
+  });
+  updateReadouts();
+  redraw();
+}
+
+['sLam','sW','sD','sPts'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', ()=>{ readSliders(); redraw(); });
+});
+
+/* ── HUYGENS CANVAS ── */
+function drawHuygens(){
+  const dpr = window.devicePixelRatio||1;
+  const CW = cvH.offsetWidth, CH = cvH.offsetHeight;
+  cvH.width = CW*dpr; cvH.height = CH*dpr;
+  const ctx = ctxH;
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,CW,CH);
+
+  // physical space: x in [0, L], y in [-yMax, yMax]
+  // slit plane at x = slitX (pixels), screen at x = screenX
+  const slitPx = Math.round(CW * 0.22);
+  const screenPx = CW - 20;
+  const yMax = Math.max(d*N*0.75, w*3, 6); // mm
+  const scaleY = (CH*0.9) / (2*yMax); // px per mm
+  const cy = CH/2;
+
+  function toY(ymm){ return cy - ymm*scaleY; }
+  function toX(xfrac){ return slitPx + xfrac*(screenPx - slitPx); }
+
+  // slit centres
+  const slitCentres = [];
+  const totalSpan = (N-1)*d;
+  for(let i=0;i<N;i++) slitCentres.push(-totalSpan/2 + i*d);
+
+  /* incoming wavefronts (static evenly-spaced vertical lines) */
+  ctx.strokeStyle = COL.wavefront;
+  ctx.lineWidth = 1.5;
+  const numWaves = 6;
+  for(let i=1;i<=numWaves;i++){
+    const xpx = Math.round(slitPx * i / (numWaves+1));
+    ctx.beginPath();
+    ctx.moveTo(xpx, 0); ctx.lineTo(xpx, CH);
+    ctx.stroke();
+  }
+
+  /* barrier */
+  ctx.fillStyle = COL.barrier;
+  const barrierW = 6;
+  // top barrier segment
+  if(slitCentres.length > 0){
+    const topEdge = slitCentres[0] - w/2;
+    const botEdge = slitCentres[N-1] + w/2;
+    ctx.fillRect(slitPx - barrierW/2, 0, barrierW, toY(topEdge));
+    ctx.fillRect(slitPx - barrierW/2, toY(botEdge), barrierW, CH - toY(botEdge));
+    // gaps between slits
+    for(let i=0;i<N-1;i++){
+      const gapTop = slitCentres[i]+w/2;
+      const gapBot = slitCentres[i+1]-w/2;
+      ctx.fillRect(slitPx - barrierW/2, toY(gapTop), barrierW, toY(gapBot)-toY(gapTop));
+    }
+  }
+
+  /* secondary wavelets from each emitter point */
+  const emitterPts = [];
+  slitCentres.forEach(sc=>{
+    for(let p=0;p<pts;p++){
+      const y = sc - w/2 + (p+0.5)*(w/pts);
+      emitterPts.push(y);
+    }
+  });
+
+  /* secondary wavelets — static concentric arcs at fixed radii */
+  const numRings = 5;
+  ctx.lineWidth = 0.6;
+  emitterPts.forEach(ymm=>{
+    const epy = toY(ymm);
+    const maxR = (screenPx - slitPx);
+    for(let r=1;r<=numRings;r++){
+      const rad = (r/numRings) * maxR;
+      ctx.strokeStyle = COL.wavelet;
+      ctx.beginPath();
+      ctx.arc(slitPx, epy, rad, -Math.PI/2, Math.PI/2);
+      ctx.stroke();
+    }
+    // source dot
+    ctx.fillStyle = COL.source;
+    ctx.beginPath();
+    ctx.arc(slitPx, epy, 2.5, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  /* screen line */
+  ctx.strokeStyle = COL.screen;
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(screenPx, 0); ctx.lineTo(screenPx, CH); ctx.stroke();
+
+  /* intensity projected on screen */
+  const numScreenPts = CH;
+  ctx.lineWidth = 1;
+  for(let py=0;py<numScreenPts;py++){
+    const ymm = (cy - py) / scaleY;
+    const sinT = ymm / Math.sqrt((screenPx-slitPx)**2/scaleY**2 + ymm**2);
+    // clamp
+    const st = Math.max(-1, Math.min(1, sinT));
+    const I = intensity(st);
+    const maxBarW = 40;
+    const barW = I * maxBarW;
+    ctx.fillStyle = dark
+      ? `rgba(127,119,221,${0.15 + I*0.7})`
+      : `rgba(83,74,183,${0.12 + I*0.65})`;
+    ctx.fillRect(screenPx - barW, py, barW, 1);
+  }
+
+  /* axis label */
+  ctx.fillStyle = COL.text;
+  ctx.font = `10px ${getComputedStyle(document.body).getPropertyValue('--mono')||'monospace'}`;
+  ctx.textAlign = 'left';
+  ctx.fillText('slit plane', slitPx + 8, 14);
+  ctx.fillText('screen', screenPx - 55, 14);
+  ctx.textAlign = 'center';
+  ctx.fillText('← incoming plane wave', slitPx*0.45, CH - 8);
+}
+
+/* ── INTENSITY FUNCTION ── */
+function intensity(sinTheta){
+  const beta  = Math.PI * w   * sinTheta / lam;
+  const delta = Math.PI * d   * sinTheta / lam;
+  let sinc = (Math.abs(beta) < 1e-9) ? 1 : Math.sin(beta)/beta;
+  let multi;
+  if(N===1){
+    multi = 1;
+  } else {
+    const num = Math.sin(N*delta);
+    const den = Math.sin(delta);
+    multi = (Math.abs(den) < 1e-9) ? N : num/den;
+    multi = multi / N; // normalise so peak = 1
+  }
+  return sinc*sinc * multi*multi;
+}
+
+/* ── INTENSITY CANVAS ── */
+function drawIntensity(){
+  const dpr = window.devicePixelRatio||1;
+  const CW = cvI.offsetWidth, CH = cvI.offsetHeight;
+  cvI.width = CW*dpr; cvI.height = CH*dpr;
+  const ctx = ctxI;
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,CW,CH);
+
+  const thetaMax = Math.PI/2;
+  const pad = {l:36, r:12, t:14, b:24};
+  const plotW = CW - pad.l - pad.r;
+  const plotH = CH - pad.t - pad.b;
+
+  // axes
+  ctx.strokeStyle = dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+  ctx.lineWidth = 0.5;
+  // horizontal axis
+  ctx.beginPath();
+  ctx.moveTo(pad.l, pad.t + plotH);
+  ctx.lineTo(pad.l + plotW, pad.t + plotH);
+  ctx.stroke();
+  // centre line
+  ctx.setLineDash([3,4]);
+  ctx.beginPath();
+  ctx.moveTo(pad.l + plotW/2, pad.t);
+  ctx.lineTo(pad.l + plotW/2, pad.t + plotH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // envelope (single-slit sinc² only)
+  ctx.strokeStyle = COL.envelope;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for(let px=0;px<=plotW;px++){
+    const theta = (px/plotW - 0.5) * 2 * thetaMax;
+    const st = Math.sin(theta);
+    const beta = Math.PI * w * st / lam;
+    const sinc = (Math.abs(beta)<1e-9) ? 1 : Math.sin(beta)/beta;
+    const I = sinc*sinc;
+    const py = pad.t + plotH*(1 - I);
+    px===0 ? ctx.moveTo(pad.l+px, py) : ctx.lineTo(pad.l+px, py);
+  }
+  ctx.stroke();
+
+  // full I(θ)
+  ctx.strokeStyle = COL.intensity;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for(let px=0;px<=plotW;px++){
+    const theta = (px/plotW - 0.5) * 2 * thetaMax;
+    const st = Math.sin(theta);
+    const I = intensity(st);
+    const py = pad.t + plotH*(1 - Math.min(1,I));
+    px===0 ? ctx.moveTo(pad.l+px, py) : ctx.lineTo(pad.l+px, py);
+  }
+  ctx.stroke();
+
+  // labels
+  ctx.fillStyle = COL.text;
+  ctx.font = `10px monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillText('−90°', pad.l, pad.t+plotH+14);
+  ctx.fillText('0°',   pad.l+plotW/2, pad.t+plotH+14);
+  ctx.fillText('+90°', pad.l+plotW,   pad.t+plotH+14);
+  ctx.fillText('θ',    pad.l+plotW+8, pad.t+plotH+4);
+
+  ctx.textAlign = 'right';
+  ctx.fillText('I₀', pad.l-4, pad.t+8);
+  ctx.fillText('0',  pad.l-4, pad.t+plotH+2);
+
+  // legend
+  ctx.textAlign = 'left';
+  ctx.fillStyle = COL.envelope;
+  ctx.fillRect(pad.l, pad.t+2, 18, 2);
+  ctx.fillStyle = COL.text;
+  ctx.fillText('envelope (sinβ/β)²', pad.l+22, pad.t+8);
+
+  ctx.fillStyle = COL.intensity;
+  ctx.fillRect(pad.l+160, pad.t+2, 18, 2);
+  ctx.fillStyle = COL.text;
+  ctx.fillText('I(θ) full', pad.l+182, pad.t+8);
+}
+
+function redraw(){ drawHuygens(); drawIntensity(); }
+
+readSliders();
+redraw();
+window.addEventListener('resize', redraw);
+</script>
+</body>
+</html>

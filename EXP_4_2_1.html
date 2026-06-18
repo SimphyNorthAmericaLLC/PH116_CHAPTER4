@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>1D Interference Widget</title>
+<style>
+  :root{
+    --bg:#111827;
+    --panel:#1f2937;
+    --text:#f9fafb;
+    --muted:#cbd5e1;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    display:flex;
+    justify-content:center;
+    padding:20px;
+  }
+  .wrap{
+    width:min(980px, 96vw);
+    background:var(--panel);
+    border-radius:16px;
+    padding:18px 18px 22px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.35);
+  }
+  h1{
+    margin:0 0 8px 0;
+    font-size:1.4rem;
+    text-align:center;
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--muted);
+    margin-bottom:16px;
+    line-height:1.4;
+  }
+  .controls{
+    display:grid;
+    grid-template-columns: 1fr auto auto;
+    gap:12px;
+    align-items:center;
+    margin-bottom:14px;
+  }
+  .slider-box{
+    background:#111827;
+    border-radius:12px;
+    padding:12px 14px;
+  }
+  label{
+    display:block;
+    font-weight:bold;
+    margin-bottom:6px;
+  }
+  input[type="range"]{
+    width:100%;
+  }
+  .readout{
+    min-width:110px;
+    text-align:center;
+    background:#111827;
+    padding:12px 10px;
+    border-radius:12px;
+    font-size:1rem;
+  }
+  button{
+    border:none;
+    border-radius:12px;
+    padding:12px 16px;
+    font-size:1rem;
+    cursor:pointer;
+    background:#e5e7eb;
+    color:#111827;
+    font-weight:bold;
+  }
+  button:hover{filter:brightness(0.96)}
+  canvas{
+    width:100%;
+    height:auto;
+    display:block;
+    background:white;
+    border-radius:12px;
+  }
+  .note{
+    margin-top:10px;
+    color:var(--muted);
+    line-height:1.45;
+    font-size:0.95rem;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>1D Interference of Two Waves</h1>
+    <div class="subtitle">
+      Two waves with the same wavelength and frequency move to the right.<br>
+      Change the phase difference and watch how the sum changes.
+    </div>
+
+    <div class="controls">
+      <div class="slider-box">
+        <label for="phaseSlider">Phase difference, φ (degrees)</label>
+        <input id="phaseSlider" type="range" min="0" max="360" value="0" step="1">
+      </div>
+      <div class="readout" id="phaseReadout">0°</div>
+      <button id="pauseBtn">Pause</button>
+    </div>
+
+    <canvas id="plot" width="920" height="520"></canvas>
+
+    <div class="note">
+      Wave 1 is shown in blue, Wave 2 in green, and their sum in red.
+      When φ = 0°, the sum is largest. When φ = 180°, the waves cancel everywhere.
+    </div>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById("plot");
+  const ctx = canvas.getContext("2d");
+  const slider = document.getElementById("phaseSlider");
+  const readout = document.getElementById("phaseReadout");
+  const pauseBtn = document.getElementById("pauseBtn");
+
+  const W = canvas.width;
+  const H = canvas.height;
+
+  const A = 60;
+  const wavelength = 220;
+  const k = 2 * Math.PI / wavelength;
+  const omega = 2 * Math.PI * 0.8;
+  const y1mid = 130;
+  const y2mid = 260;
+  const ysumMid = 405;
+  const leftPad = 70;
+  const rightPad = 18;
+  const usableW = W - leftPad - rightPad;
+
+  let running = true;
+  let lastTime = null;
+  let t = 0;
+
+  function drawAxes(yMid, label) {
+    ctx.strokeStyle = "#374151";
+    ctx.lineWidth = 1.2;
+
+    ctx.beginPath();
+    ctx.moveTo(leftPad, yMid);
+    ctx.lineTo(W - rightPad, yMid);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(leftPad, yMid - 78);
+    ctx.lineTo(leftPad, yMid + 78);
+    ctx.stroke();
+
+    ctx.strokeStyle = "#e5e7eb";
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 4; i++) {
+      const x = leftPad + i * usableW / 4;
+      ctx.beginPath();
+      ctx.moveTo(x, yMid - 78);
+      ctx.lineTo(x, yMid + 78);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = "#111827";
+    ctx.font = "16px Arial";
+    ctx.fillText(label, 14, yMid - 58);
+    ctx.fillText("x", W - rightPad - 8, yMid - 8);
+    ctx.fillText("u", leftPad + 8, yMid - 62);
+  }
+
+  function drawWave(color, yMid, fn) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+
+    for (let px = 0; px <= usableW; px++) {
+      const x = px;
+      const y = fn(x);
+      const cx = leftPad + x;
+      const cy = yMid - y;
+      if (px === 0) ctx.moveTo(cx, cy);
+      else ctx.lineTo(cx, cy);
+    }
+    ctx.stroke();
+  }
+
+  function drawTitleAndLegend(phiDeg, phiRad) {
+    ctx.fillStyle = "#111827";
+    ctx.font = "18px Arial";
+    ctx.fillText("u₁(x,t) = A cos(kx - ωt)", leftPad, 28);
+    ctx.fillText("u₂(x,t) = A cos(kx - ωt + φ)", leftPad + 280, 28);
+    ctx.fillText("u(x,t) = u₁ + u₂", leftPad + 595, 28);
+
+    ctx.font = "17px Arial";
+    ctx.fillText(`φ = ${phiDeg}°   (${phiRad.toFixed(3)} rad)`, leftPad, 56);
+
+    const Aeff = 2 * Math.abs(Math.cos(phiRad / 2));
+    ctx.fillText(`Effective amplitude / A = 2|cos(φ/2)| = ${Aeff.toFixed(3)}`, leftPad + 260, 56);
+
+    const items = [
+      {c:"#2563eb", txt:"Wave 1"},
+      {c:"#16a34a", txt:"Wave 2"},
+      {c:"#dc2626", txt:"Sum"}
+    ];
+    let lx = W - 260;
+    const ly = 50;
+    ctx.font = "15px Arial";
+    items.forEach((it, i) => {
+      const y = ly + i * 22;
+      ctx.strokeStyle = it.c;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(lx, y);
+      ctx.lineTo(lx + 26, y);
+      ctx.stroke();
+      ctx.fillStyle = "#111827";
+      ctx.fillText(it.txt, lx + 36, y + 5);
+    });
+  }
+
+  function render() {
+    const phiDeg = Number(slider.value);
+    const phi = phiDeg * Math.PI / 180;
+    readout.textContent = `${phiDeg}°`;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, W, H);
+
+    drawTitleAndLegend(phiDeg, phi);
+
+    drawAxes(y1mid, "Wave 1");
+    drawAxes(y2mid, "Wave 2");
+    drawAxes(ysumMid, "Sum");
+
+    const u1 = x => A * Math.cos(k * x - omega * t);
+    const u2 = x => A * Math.cos(k * x - omega * t + phi);
+    const us = x => u1(x) + u2(x);
+
+    drawWave("#2563eb", y1mid, u1);
+    drawWave("#16a34a", y2mid, u2);
+    drawWave("#dc2626", ysumMid, us);
+  }
+
+  function animate(timestamp) {
+    if (lastTime === null) lastTime = timestamp;
+    const dt = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+
+    if (running) t += dt;
+    render();
+    requestAnimationFrame(animate);
+  }
+
+  slider.addEventListener("input", render);
+  pauseBtn.addEventListener("click", () => {
+    running = !running;
+    pauseBtn.textContent = running ? "Pause" : "Play";
+  });
+
+  render();
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>

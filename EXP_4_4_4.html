@@ -1,0 +1,259 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.wrap { padding: 1rem 0; font-family: var(--font-sans); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem; align-items: flex-end; }
+.ctrl-group { display: flex; flex-direction: column; gap: 4px; }
+.ctrl-group label { font-size: 12px; color: var(--color-text-secondary); }
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { padding: 5px 14px; font-size: 13px; border-radius: 20px; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); cursor: pointer; transition: all .15s; }
+.chip:hover { background: var(--color-background-secondary); }
+.chip.active { border-color: transparent; color: #fff; font-weight: 500; }
+.slider-row { display: flex; align-items: center; gap: 8px; }
+.slider-row input[type=range] { width: 130px; }
+.slider-row span { font-size: 12px; color: var(--color-text-primary); min-width: 44px; }
+canvas { width: 100%; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.leg-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--color-text-secondary); }
+.leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+</style>
+
+<div class="wrap">
+  <h2 class="sr-only">Diffraction grating simulator</h2>
+  <div class="controls">
+    <div class="ctrl-group">
+      <label>Source</label>
+      <div class="chip-row" id="source-chips"></div>
+    </div>
+    <div class="ctrl-group" style="margin-left:auto">
+      <label>Grating (lines/mm)</label>
+      <div class="slider-row">
+        <input type="range" id="gs" min="100" max="1200" step="50" value="600">
+        <span id="gv">600</span>
+      </div>
+    </div>
+    <div class="ctrl-group">
+      <label>Zoom</label>
+      <div class="slider-row">
+        <input type="range" id="zs" min="1" max="10" step="0.5" value="4">
+        <span id="zv">4×</span>
+      </div>
+    </div>
+  </div>
+  <canvas id="cv"></canvas>
+  <div class="legend" id="legend"></div>
+</div>
+
+<script>
+const SOURCES = [
+  { id:'mix', label:'Blue + Yellow + Red', chipColor:'#888',
+    lines:[{λ:450,name:'Blue',w:4},{λ:580,name:'Yellow',w:4},{λ:650,name:'Red',w:4}] },
+  { id:'hydrogen', label:'Hydrogen', chipColor:'#9933ff',
+    lines:[{λ:656.3,name:'Hα',w:4},{λ:486.1,name:'Hβ',w:3},{λ:434.0,name:'Hγ',w:3},{λ:410.2,name:'Hδ',w:2}] },
+  { id:'helium', label:'Helium', chipColor:'#ff7700',
+    lines:[{λ:667.8,name:'668',w:3},{λ:587.6,name:'D₃',w:4},{λ:501.6,name:'502',w:3},{λ:471.3,name:'471',w:2},{λ:447.1,name:'447',w:2},{λ:388.9,name:'389',w:1}] },
+  { id:'neon', label:'Neon', chipColor:'#ff2244',
+    lines:[{λ:703.2,name:'703',w:2},{λ:671.7,name:'672',w:2},{λ:659.9,name:'660',w:2},{λ:640.2,name:'640',w:4},{λ:614.3,name:'614',w:4},{λ:585.2,name:'585',w:3},{λ:540.1,name:'540',w:2}] },
+  { id:'mercury', label:'Mercury', chipColor:'#44aaff',
+    lines:[{λ:579.1,name:'579',w:4},{λ:546.1,name:'546',w:4},{λ:435.8,name:'436',w:3},{λ:404.7,name:'405',w:2},{λ:365.0,name:'365',w:1}] },
+];
+
+let activeId = 'mix';
+let gratingLpmm = 600;
+let zoom = 4;
+
+function wlToRgb(λ) {
+  let r,g,b,a=1;
+  if(λ<380){r=0.5;g=0;b=0.8;a=0.4;}
+  else if(λ<440){r=(440-λ)/60;g=0;b=1;}
+  else if(λ<490){r=0;g=(λ-440)/50;b=1;}
+  else if(λ<510){r=0;g=1;b=(510-λ)/20;}
+  else if(λ<580){r=(λ-510)/70;g=1;b=0;}
+  else if(λ<645){r=1;g=(645-λ)/65;b=0;}
+  else if(λ<=700){r=1;g=0;b=0;}
+  else{r=0.7;g=0;b=0;a=0.5;}
+  if(λ>=380&&λ<420) a*=0.4+0.6*(λ-380)/40;
+  if(λ>680&&λ<=720) a*=0.4+0.6*(720-λ)/40;
+  return [Math.round(r*255),Math.round(g*255),Math.round(b*255),a];
+}
+
+function wlStyle(λ,alpha=1){const[r,g,b,a]=wlToRgb(λ);return`rgba(${r},${g},${b},${(a*alpha).toFixed(2)})`;}
+
+// Build chips
+const chipCt=document.getElementById('source-chips');
+SOURCES.forEach(s=>{
+  const c=document.createElement('button');
+  c.className='chip'+(s.id===activeId?' active':'');
+  c.textContent=s.label;
+  if(s.id===activeId)c.style.background=s.chipColor;
+  c.onclick=()=>{activeId=s.id;updateChips();draw();};
+  chipCt.appendChild(c);
+});
+function updateChips(){
+  document.querySelectorAll('.chip').forEach((ch,i)=>{
+    const s=SOURCES[i];
+    ch.classList.toggle('active',s.id===activeId);
+    ch.style.background=s.id===activeId?s.chipColor:'';
+  });
+}
+document.getElementById('gs').oninput=e=>{gratingLpmm=+e.target.value;document.getElementById('gv').textContent=gratingLpmm;draw();};
+document.getElementById('zs').oninput=e=>{zoom=+e.target.value;document.getElementById('zv').textContent=zoom+'×';draw();};
+
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+
+function draw(){
+  const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+  const W=cv.parentElement.clientWidth||660;
+  const H=500;
+  cv.width=W; cv.height=H;
+
+  const bg=dark?'#141413':'#f5f4f0';
+  const fg=dark?'#c2c0b6':'#3d3d3a';
+  const dim=dark?'#2c2c2a':'#dddcd5';
+  const muted=dark?'#555552':'#a0a09a';
+
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  const src=SOURCES.find(s=>s.id===activeId);
+  const dSpacing=1e-3/gratingLpmm;
+
+  // Layout
+  const diagH=210;
+  const stripTop=diagH+28;
+  const stripH=H-stripTop-16;
+  const cx=W/2;
+  const gratingY=diagH-20;
+  const screenY=36;
+
+  // ---- DIAGRAM ----
+  // source
+  ctx.fillStyle=muted; ctx.beginPath(); ctx.arc(cx,screenY+16,5,0,Math.PI*2); ctx.fill();
+  // incident beam dashed
+  ctx.save(); ctx.strokeStyle=muted; ctx.lineWidth=1.2; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(cx,screenY+22); ctx.lineTo(cx,gratingY-5); ctx.stroke();
+  ctx.setLineDash([]); ctx.restore();
+  ctx.fillStyle=fg; ctx.font=`11px var(--font-sans)`; ctx.textAlign='center';
+  ctx.fillText('Source',cx,screenY+10);
+
+  // grating bar
+  const gW=180;
+  ctx.fillStyle=dim; ctx.fillRect(cx-gW/2,gratingY-4,gW,8);
+  for(let i=0;i<22;i++){ctx.fillStyle=bg;ctx.fillRect(cx-gW/2+i*(gW/22),gratingY-4,gW/44,8);}
+  ctx.fillStyle=fg; ctx.font=`11px var(--font-sans)`; ctx.textAlign='center';
+  ctx.fillText(`Grating: ${gratingLpmm} lines/mm  (d = ${(dSpacing*1e6).toFixed(2)} μm)`,cx,gratingY+18);
+
+  // screen line
+  ctx.strokeStyle=muted; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(24,screenY+22); ctx.lineTo(W-24,screenY+22); ctx.stroke();
+
+  // diffracted rays in schematic
+  const orders=[-2,-1,0,1,2];
+  orders.forEach(m=>{
+    src.lines.forEach((line,li)=>{
+      const λ=line.λ*1e-9;
+      const sinθ=m*λ/dSpacing;
+      if(Math.abs(sinθ)>0.96) return;
+      const θ=Math.asin(sinθ);
+      const rayLen=gratingY-(screenY+22);
+      const ex=cx+Math.sin(θ)*rayLen;
+      const ey=(screenY+22);
+      ctx.save();
+      ctx.strokeStyle=wlStyle(line.λ,0.75);
+      ctx.lineWidth=1.2;
+      ctx.globalAlpha=m===0?0.9:0.6;
+      ctx.beginPath(); ctx.moveTo(cx,gratingY-4); ctx.lineTo(ex,ey); ctx.stroke();
+      ctx.restore();
+    });
+  });
+
+  // m= labels above screen
+  orders.forEach(m=>{
+    const refλ=src.lines[0].λ*1e-9;
+    const sinθ=m*refλ/dSpacing;
+    if(Math.abs(sinθ)>0.96) return;
+    const θ=Math.asin(sinθ);
+    const ex=cx+Math.sin(θ)*(gratingY-(screenY+22));
+    if(ex<16||ex>W-16) return;
+    ctx.fillStyle=muted; ctx.font=`10px var(--font-mono,monospace)`; ctx.textAlign='center';
+    ctx.fillText(`m=${m>=0?'+':''}${m}`,Math.max(18,Math.min(W-18,ex)),screenY+34);
+  });
+
+  // ---- SCREEN STRIP ----
+  ctx.fillStyle=dark?'#0c0c0b':'#111110';
+  ctx.beginPath(); ctx.roundRect(16,stripTop,W-32,stripH,8); ctx.fill();
+
+  ctx.fillStyle='#444'; ctx.font=`10px var(--font-sans)`; ctx.textAlign='left';
+  ctx.fillText('Screen',24,stripTop+13);
+
+  // centre marker
+  ctx.strokeStyle='#2a2a28'; ctx.lineWidth=0.5; ctx.setLineDash([2,3]);
+  ctx.beginPath(); ctx.moveTo(cx,stripTop+4); ctx.lineTo(cx,stripTop+stripH-4); ctx.stroke();
+  ctx.setLineDash([]);
+
+  const halfW=(W-32)/2*0.93;
+
+  // collect all visible hits
+  const hits=[];
+  orders.forEach(m=>{
+    src.lines.forEach(line=>{
+      const λ=line.λ*1e-9;
+      const sinθ=m*λ/dSpacing;
+      if(Math.abs(sinθ)>0.98) return;
+      const px=cx+sinθ*halfW*zoom;
+      if(px<20||px>W-20) return;
+      hits.push({m,line,sinθ,px});
+    });
+  });
+
+  // draw glowing bars
+  hits.forEach(({line,px})=>{
+    const [r,g,b,a]=wlToRgb(line.λ);
+    const bw=(line.w||2);
+    // outer glow
+    const grd=ctx.createLinearGradient(px-bw*6,0,px+bw*6,0);
+    grd.addColorStop(0,`rgba(${r},${g},${b},0)`);
+    grd.addColorStop(0.5,`rgba(${r},${g},${b},${(a*0.25).toFixed(2)})`);
+    grd.addColorStop(1,`rgba(${r},${g},${b},0)`);
+    ctx.fillStyle=grd;
+    ctx.fillRect(px-bw*6,stripTop+20,bw*12,stripH-36);
+    // core
+    ctx.fillStyle=`rgba(${r},${g},${b},${Math.min(a,1).toFixed(2)})`;
+    ctx.fillRect(px-bw/2,stripTop+20,bw,stripH-36);
+  });
+
+  // labels: name on top, order on bottom — deduplicate by proximity
+  const labeledTop=[];
+  hits.forEach(({m,line,px})=>{
+    // avoid crowding: skip if another label within 18px
+    const tooClose=labeledTop.some(p=>Math.abs(p-px)<18);
+    const [r,g,b]=wlToRgb(line.λ);
+    ctx.save();
+    ctx.font=`10px var(--font-sans)`; ctx.textAlign='center';
+    if(line.name && !tooClose){
+      ctx.fillStyle=`rgba(${r},${g},${b},1)`;
+      ctx.fillText(line.name,px,stripTop+19);
+      labeledTop.push(px);
+    }
+    ctx.fillStyle=`rgba(${Math.min(r+60,255)},${Math.min(g+60,255)},${Math.min(b+60,255)},0.6)`;
+    ctx.font=`9px var(--font-mono,monospace)`;
+    ctx.fillText(`m=${m>=0?'+':''}${m}`,px,stripTop+stripH-6);
+    ctx.restore();
+  });
+
+  // legend
+  const legEl=document.getElementById('legend');
+  legEl.innerHTML='';
+  const seen=new Set();
+  src.lines.forEach(l=>{
+    if(seen.has(l.λ))return; seen.add(l.λ);
+    const [r,g,b]=wlToRgb(l.λ);
+    const item=document.createElement('div'); item.className='leg-item';
+    item.innerHTML=`<div class="leg-dot" style="background:rgb(${r},${g},${b})"></div>${l.name} — ${l.λ} nm`;
+    legEl.appendChild(item);
+  });
+}
+
+window.addEventListener('resize',draw);
+draw();
+</script>
