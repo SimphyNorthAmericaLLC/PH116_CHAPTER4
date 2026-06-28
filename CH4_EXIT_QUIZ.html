@@ -1,0 +1,54 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>PH116 Exit Quiz</title>
+<style>
+body{font-family:system-ui,sans-serif;background:radial-gradient(circle at top,#1b2745,#090a0f);color:#f2f2f2;margin:0;padding:24px}
+#quiz{max-width:760px;margin:auto;background:#121212;padding:24px;border-radius:18px}
+.progress{height:10px;background:#222;border-radius:20px;overflow:hidden}
+#bar{height:100%;width:0;background:linear-gradient(90deg,#00d4ff,#00ff99)}
+.opt{display:block;width:100%;margin:8px 0;padding:12px;background:#181818;color:white;border:1px solid #333;border-radius:10px;text-align:left}
+.correct{color:#00ff88} .incorrect{color:#ff6666}
+</style></head><body>
+<div id="quiz"><h1>PH116 Exit Quiz</h1><div>Wave Interference & Diffraction</div>
+<div class="progress"><div id="bar"></div></div>
+<h3 id="progress"></h3><div id="stem"></div><div id="options"></div><div id="feedback"></div><button id="restart">Restart</button></div>
+<script>
+const quiz=[{q:"Which equation correctly expresses Euler's formula?",o:['e^(itheta)=cos(theta)+i sin(theta)', 'e^(itheta)=sin(theta)+i cos(theta)', 'e^(itheta)=cos(theta)-i sin(theta)', 'e^(itheta)=tan(theta)'],a:0},{q:'In phasor analysis, the complex exponential is mainly used to encode',o:['wave speed', 'stored energy', 'amplitude together with phase', 'wavelength only'],a:2},{q:'To superimpose two coherent phasors, you should',o:['add amplitudes directly', 'add phases directly', 'sum the real and imaginary parts separately', 'multiply the amplitudes'],a:2},{q:'Maximum reinforcement between two coherent waves occurs when the path difference equals',o:['an odd half wavelength', 'an integer number of wavelengths', 'one quarter wavelength', '2m+1 wavelengths'],a:1},{q:'Complete cancellation is expected when the path difference equals',o:['an integer number of wavelengths', 'an odd half wavelength', 'one third wavelength', 'two wavelengths'],a:1},{q:'Coherent waves are required to have the same',o:['wavelength only', 'amplitude only', 'frequency', 'phase'],a:2},{q:'For a spherical wave, amplitude typically varies approximately as',o:['r', '1/r', '1/r^2', 'e^r'],a:1},{q:'Including attenuation in an interference calculation mainly changes the',o:['fringe positions', 'wavelength', 'fringe brightness', 'frequency'],a:2},{q:'Huygens proposed that',o:['only the slit center emits', 'every point on a wavefront acts as a source', 'diffraction needs two slits', 'only the slit edges emit'],a:1},{q:'Fresnel diffraction is associated with the',o:['far field', 'near field', 'critical angle', 'polarization'],a:1},{q:'Fraunhofer diffraction is a good approximation when',o:['the observation screen is very far away', 'the screen touches the slit', 'the wavelength is zero', 'attenuation is ignored'],a:0},{q:'Under Fraunhofer conditions, the diffraction integral becomes a',o:['nonlinear integral', 'numerical-only problem', 'Fourier integral', 'constant'],a:2},{q:'For a single slit, the diffraction amplitude follows the',o:['sinc function', 'cosine', 'beta squared', 'tangent'],a:0},{q:'The light intensity from a single slit varies with',o:['sin(beta)', '(sin(beta)/beta)^2', 'beta', 'cos^2(beta)'],a:1},{q:'Making the slit wider causes the central bright fringe to become',o:['broader', 'narrower', 'unchanged', 'twice as bright'],a:1},{q:'A longer wavelength causes diffraction minima to be',o:['closer together', 'farther apart', 'unchanged', 'randomly spaced'],a:1},{q:'In a double-slit experiment, principal maxima are mainly controlled by the',o:['slit width', 'slit separation', 'number of slits', 'attenuation'],a:1},{q:'Adding more equally spaced slits makes the principal maxima',o:['broader', 'sharper', 'random', 'fewer'],a:1},{q:'The broad envelope around a multi-slit pattern comes from the',o:['slit spacing', 'single-slit diffraction', 'wavelength alone', 'screen distance'],a:1},{q:'Changing a slit into a circular aperture introduces',o:['Legendre functions', 'Bessel functions', 'Hermite functions', 'exponential functions'],a:1},{q:'The first Airy minimum is located near',o:['0.50 lambda/D', '1.22 lambda/D', '2 lambda/D', 'pi lambda/D'],a:1},{q:'A diffraction grating separates colors because different wavelengths leave at',o:['different reflection angles', 'different diffraction angles', 'different frequencies', 'different speeds'],a:1},{q:'Increasing the groove density of a grating generally improves',o:['wavelength resolution', 'number of maxima', 'frequency', 'wavelength'],a:0},{q:'Each element produces a distinct emission spectrum because',o:['all gases emit the same colors', 'its atomic energy levels are unique', 'prisms create colors', 'diffraction changes atoms'],a:1},{q:'Which statement best captures the idea of diffraction?',o:['It only occurs for sound', 'It requires two slits', 'It results from interference among secondary wavelets', 'It destroys interference'],a:2},];
+const progressEl=document.getElementById('progress');
+const stemEl=document.getElementById('stem');
+const optionsEl=document.getElementById('options');
+const feedbackEl=document.getElementById('feedback');
+const restartBtn=document.getElementById('restart');
+let idx=0,score=0;
+function render(){
+ document.getElementById('bar').style.width=(idx/quiz.length*100)+'%';
+ progressEl.textContent='Question '+(idx+1)+' of '+quiz.length+' · Score: '+score+'/'+quiz.length;
+ stemEl.textContent=quiz[idx].q;
+ optionsEl.innerHTML='';
+ feedbackEl.textContent='';
+ const letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+ quiz[idx].o.forEach((t,i)=>{
+   const b=document.createElement('button');
+   b.className='opt';
+   b.innerHTML='<b>'+letters[i]+')</b> '+t;
+   b.onclick=()=>answer(i);
+   optionsEl.appendChild(b);
+ });
+}
+function answer(i){
+ if(i===quiz[idx].a){
+   score++; feedbackEl.className='correct'; feedbackEl.textContent='Correct!';
+   setTimeout(()=>{idx++; if(idx<quiz.length) render(); else {
+      progressEl.textContent='Completed · Final Score: '+score+'/'+quiz.length;
+      stemEl.textContent='Quiz finished.';
+      optionsEl.innerHTML='';
+      feedbackEl.textContent='Press Restart to try again.';
+   } },500);
+ } else {
+   feedbackEl.className='incorrect';
+   feedbackEl.textContent='Incorrect — restarting from Question 1...';
+   setTimeout(()=>{idx=0;score=0;render();},700);
+ }
+}
+restartBtn.onclick=()=>{idx=0;score=0;render();};
+render();
+</script></body></html>
